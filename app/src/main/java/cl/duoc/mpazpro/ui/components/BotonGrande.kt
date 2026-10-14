@@ -7,6 +7,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,7 +27,10 @@ fun BotonGrande(
             .fillMaxWidth()
             .height(72.dp),
         shape = RoundedCornerShape(20.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = colorFondo)
+        colors = ButtonDefaults.buttonColors(
+            containerColor = colorFondo,
+            contentColor = contentColorFor(colorFondo)
+        )
     ) {
         Text(texto)
     }

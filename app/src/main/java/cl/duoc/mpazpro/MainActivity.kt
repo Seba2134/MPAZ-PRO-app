@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import cl.duoc.mpazpro.ui.inicio.SeleccionRolScreen
+import cl.duoc.mpazpro.ui.navigation.AppNavHost
 import cl.duoc.mpazpro.ui.theme.ColorLenguaje
 import cl.duoc.mpazpro.ui.theme.MPAZPROTheme
 
@@ -31,13 +32,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MPAZPROTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    val context = LocalContext.current
-                    SeleccionRolScreen(
-                        onRolSeleccionado = { rol ->
-                            Toast.makeText(context, "Elegiste: ${rol.nombreVisible}", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    AppNavHost(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
