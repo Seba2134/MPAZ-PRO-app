@@ -37,8 +37,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         // TEMPORAL: comprobar que Room funciona. Borrar después.
         lifecycleScope.launch {
-            val total = AppDatabase.getInstance(applicationContext).asignaturaDao().contar()
-            Log.d("MPAZ2", "Asignaturas en la BD: $total")
+            val db = AppDatabase.getInstance(applicationContext)
+            Log.d("MPAZ", "Asignaturas en la BD: ${db.asignaturaDao().contar()}")
+            Log.d("MPAZ", "Usuarios en la BD: ${db.usuarioDao().contar()}")
         }
         setContent {
             MPAZPROTheme {

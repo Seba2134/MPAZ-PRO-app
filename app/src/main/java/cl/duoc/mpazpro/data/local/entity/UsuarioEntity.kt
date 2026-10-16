@@ -1,0 +1,26 @@
+package cl.duoc.mpazpro.data.local.entity
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
+import androidx.room.PrimaryKey
+import cl.duoc.mpazpro.domain.model.Rol
+
+@Entity(
+    tableName = "usuario",
+    foreignKeys = [
+        ForeignKey(
+            entity = CursoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["cursoId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index("cursoId")]
+)
+data class UsuarioEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val nombre: String,
+    val rol: Rol,
+    val cursoId: Long? = null    // solo los estudiantes tienen curso
+)
