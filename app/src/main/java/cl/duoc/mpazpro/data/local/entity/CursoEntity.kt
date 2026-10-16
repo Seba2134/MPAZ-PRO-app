@@ -11,14 +11,14 @@ import androidx.room.PrimaryKey
         ForeignKey(
             entity = UsuarioEntity::class,
             parentColumns = ["id"],
-            childColumns = ["docenteId"],
+            childColumns = ["profesorJefeId"],
             onDelete = ForeignKey.RESTRICT
         )
     ],
-    indices = [Index("docenteId")]
+    indices = [Index("profesorJefeId")]
 )
 data class CursoEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val nombre: String,
-    val docenteId: Long
+    val nombre: String,         // "2.º A"
+    val profesorJefeId: Long    // tiene acceso a TODAS las asignaturas del curso
 )

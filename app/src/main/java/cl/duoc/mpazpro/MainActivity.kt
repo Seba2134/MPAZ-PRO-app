@@ -36,10 +36,19 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // TEMPORAL: comprobar que Room funciona. Borrar después.
+        // TEMPORAL: comprobar que Room funciona. Borrar después.
         lifecycleScope.launch {
             val db = AppDatabase.getInstance(applicationContext)
-            Log.d("MPAZ", "Asignaturas en la BD: ${db.asignaturaDao().contar()}")
-            Log.d("MPAZ", "Usuarios en la BD: ${db.usuarioDao().contar()}")
+            Log.d("MPAZ4", "Asignaturas: ${db.asignaturaDao().contar()}")
+            Log.d("MPAZ4", "Usuarios: ${db.usuarioDao().contar()}")
+
+            val acceso = db.docenteAsignaturaDao()
+            // Ana (2) es profesora jefe: debería tener acceso a Lenguaje (1)
+            Log.d("MPAZ4", "Ana → Lenguaje: ${acceso.tieneAcceso(docenteId = 2, cursoId = 1, asignaturaId = 1)}")
+            // Carlos (3) hace Matemática (2): sí
+            Log.d("MPAZ4", "Carlos → Matemática: ${acceso.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 2)}")
+            // Carlos (3) NO hace Lenguaje (1): no
+            Log.d("MPAZ4", "Carlos → Lenguaje: ${acceso.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 1)}")
         }
         setContent {
             MPAZPROTheme {

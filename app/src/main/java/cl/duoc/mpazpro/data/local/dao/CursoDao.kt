@@ -11,9 +11,23 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface CursoDao {
 
-    /** Los cursos a cargo de un docente. */
-    @Query("SELECT * FROM curso WHERE docenteId = :docenteId ORDER BY nombre")
-    fun obtenerPorDocente(docenteId: Long): Flow<List<CursoEntity>>
+    /** Todos los cursos (para Jefatura UTP). */
+    @Query("SELECT * FROM curso ORDER BY nombre")
+    fun obtenerTodos(): Flow<List<CursoEntity>>
+
+    /**
+     * Los cursos que un docente puede ver:
+     * donde es profesor jefe, o donde hace al menos una asignatura.
+     */
+    @Query(
+        """
+        SELECT * FROM curso
+        WHERE profesorJefeId = :docenteId
+           OR id IN (SELECT cursoId FROM docente_asignatura WHERE docenteId = :docenteId)
+        ORDER BY nombre
+        """
+    )
+    fun obtenerVisiblesParaDocente(docenteId: Long): Flow<List<CursoEntity>>
 
     /** Un curso con la lista de sus estudiantes (para el monitoreo del docente). */
     @Transaction

@@ -9,6 +9,7 @@ import cl.duoc.mpazpro.data.local.dao.ActividadDao
 import cl.duoc.mpazpro.data.local.dao.AsignaturaDao
 import cl.duoc.mpazpro.data.local.dao.ContenidoDao
 import cl.duoc.mpazpro.data.local.dao.CursoDao
+import cl.duoc.mpazpro.data.local.dao.DocenteAsignaturaDao
 import cl.duoc.mpazpro.data.local.dao.ObjetivoAprendizajeDao
 import cl.duoc.mpazpro.data.local.dao.OpcionDao
 import cl.duoc.mpazpro.data.local.dao.PreguntaDao
@@ -18,6 +19,7 @@ import cl.duoc.mpazpro.data.local.entity.ActividadEntity
 import cl.duoc.mpazpro.data.local.entity.AsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.ContenidoEntity
 import cl.duoc.mpazpro.data.local.entity.CursoEntity
+import cl.duoc.mpazpro.data.local.entity.DocenteAsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.ObjetivoAprendizajeEntity
 import cl.duoc.mpazpro.data.local.entity.OpcionEntity
 import cl.duoc.mpazpro.data.local.entity.PreguntaEntity
@@ -34,11 +36,12 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
         ActividadEntity::class,
         PreguntaEntity::class,
         OpcionEntity::class,
-        // Bloque 2: personas
+        // Bloque 2: personas y acceso
         UsuarioEntity::class,
-        CursoEntity::class
+        CursoEntity::class,
+        DocenteAsignaturaEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -55,6 +58,7 @@ abstract class AppDatabase : RoomDatabase() {
     // Bloque 2
     abstract fun usuarioDao(): UsuarioDao
     abstract fun cursoDao(): CursoDao
+    abstract fun docenteAsignaturaDao(): DocenteAsignaturaDao
 
     companion object {
         @Volatile
@@ -74,42 +78,59 @@ abstract class AppDatabase : RoomDatabase() {
             }
 
         /**
-         * Carga los datos iniciales cada vez que las tablas se crean desde cero:
-         * - onCreate: la primera vez que se instala la app.
-         * - onDestructiveMigration: cuando subimos la versión y Room recrea las tablas.
+         * Carga los datos iniciales al abrir la base de datos, solo si está vacía.
+         * Funciona en la primera instalación y también después de subir la versión
+         * (cuando Room borra y recrea las tablas).
          */
         private val datosIniciales = object : Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                insertarDatosIniciales(db)
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                if (estaVacia(db)) {
+                    insertarDatosIniciales(db)
+                }
             }
+        }
 
-            override fun onDestructiveMigration(db: SupportSQLiteDatabase) {
-                super.onDestructiveMigration(db)
-                insertarDatosIniciales(db)
+        private fun estaVacia(db: SupportSQLiteDatabase): Boolean {
+            db.query("SELECT COUNT(*) FROM asignatura").use { cursor ->
+                return cursor.moveToFirst() && cursor.getInt(0) == 0
             }
         }
 
         private fun insertarDatosIniciales(db: SupportSQLiteDatabase) {
-            // ---------- Asignaturas ----------
-            db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (1, 'Lenguaje', '#E53935')")
-            db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (2, 'Matemática', '#1E88E5')")
-            db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (3, 'Ciencias Naturales', '#43A047')")
-            db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (4, 'Historia', '#FB8C00')")
+            db.beginTransaction()
+            try {
+                // ---------- Asignaturas ----------
+                db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (1, 'Lenguaje', '#E53935')")
+                db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (2, 'Matemática', '#1E88E5')")
+                db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (3, 'Ciencias Naturales', '#43A047')")
+                db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (4, 'Historia', '#FB8C00')")
 
-            // ---------- Usuarios ficticios ----------
-            // 1) Jefatura UTP y docente: sin curso
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (1, 'Jefatura UTP', 'JEFATURA_UTP', NULL)")
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (2, 'Profesora Ana', 'DOCENTE', NULL)")
+                // ---------- Usuarios (todos ficticios) ----------
+                // 1) Jefatura UTP y docentes: sin curso
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (1, 'Jefatura UTP', 'JEFATURA_UTP', NULL)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (2, 'Profesora Ana', 'DOCENTE', NULL)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (3, 'Profesor Carlos', 'DOCENTE', NULL)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (4, 'Profesora Daniela', 'DOCENTE', NULL)")
 
-            // 2) El curso, a cargo de la docente (id 2)
-            db.execSQL("INSERT INTO curso (id, nombre, docenteId) VALUES (1, '2.º A', 2)")
+                // 2) El curso, con la Profesora Ana (id 2) como profesora jefe
+                db.execSQL("INSERT INTO curso (id, nombre, profesorJefeId) VALUES (1, '2.º A', 2)")
 
-            // 3) Los estudiantes, en el curso 1
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (3, 'Tomás', 'ESTUDIANTE', 1)")
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (4, 'Sofía', 'ESTUDIANTE', 1)")
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (5, 'Benjamín', 'ESTUDIANTE', 1)")
-            db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (6, 'Isidora', 'ESTUDIANTE', 1)")
+                // 3) Carga académica del 2.º A (la profesora jefe no necesita filas: ve todo)
+                //    Carlos (id 3) hace Matemática (id 2); Daniela (id 4) hace Ciencias (id 3)
+                db.execSQL("INSERT INTO docente_asignatura (cursoId, asignaturaId, docenteId) VALUES (1, 2, 3)")
+                db.execSQL("INSERT INTO docente_asignatura (cursoId, asignaturaId, docenteId) VALUES (1, 3, 4)")
+
+                // 4) Los estudiantes, en el curso 1
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (5, 'Tomás', 'ESTUDIANTE', 1)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (6, 'Sofía', 'ESTUDIANTE', 1)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (7, 'Benjamín', 'ESTUDIANTE', 1)")
+                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (8, 'Isidora', 'ESTUDIANTE', 1)")
+
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
         }
     }
 }
