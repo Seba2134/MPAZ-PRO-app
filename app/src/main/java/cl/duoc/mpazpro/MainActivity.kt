@@ -1,6 +1,7 @@
 package cl.duoc.mpazpro
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,15 +21,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
+import cl.duoc.mpazpro.data.local.AppDatabase
 import cl.duoc.mpazpro.ui.inicio.SeleccionRolScreen
 import cl.duoc.mpazpro.ui.navigation.AppNavHost
 import cl.duoc.mpazpro.ui.theme.ColorLenguaje
 import cl.duoc.mpazpro.ui.theme.MPAZPROTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // TEMPORAL: comprobar que Room funciona. Borrar después.
+        lifecycleScope.launch {
+            val total = AppDatabase.getInstance(applicationContext).asignaturaDao().contar()
+            Log.d("MPAZ1", "Asignaturas en la BD: $total")
+        }
         setContent {
             MPAZPROTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
