@@ -29,6 +29,8 @@ import cl.duoc.mpazpro.ui.theme.ColorLenguaje
 import cl.duoc.mpazpro.ui.theme.MPAZPROTheme
 import kotlinx.coroutines.launch
 
+
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +38,7 @@ class MainActivity : ComponentActivity() {
         // TEMPORAL: comprobar que Room funciona. Borrar después.
         lifecycleScope.launch {
             val total = AppDatabase.getInstance(applicationContext).asignaturaDao().contar()
-            Log.d("MPAZ1", "Asignaturas en la BD: $total")
+            Log.d("MPAZ2", "Asignaturas en la BD: $total")
         }
         setContent {
             MPAZPROTheme {
