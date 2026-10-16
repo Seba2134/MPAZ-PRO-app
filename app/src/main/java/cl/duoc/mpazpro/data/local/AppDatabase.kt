@@ -6,6 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import cl.duoc.mpazpro.data.local.dao.ActividadDao
+import cl.duoc.mpazpro.data.local.dao.AsignacionDao
 import cl.duoc.mpazpro.data.local.dao.AsignaturaDao
 import cl.duoc.mpazpro.data.local.dao.ContenidoDao
 import cl.duoc.mpazpro.data.local.dao.CursoDao
@@ -16,6 +17,7 @@ import cl.duoc.mpazpro.data.local.dao.PreguntaDao
 import cl.duoc.mpazpro.data.local.dao.UnidadDao
 import cl.duoc.mpazpro.data.local.dao.UsuarioDao
 import cl.duoc.mpazpro.data.local.entity.ActividadEntity
+import cl.duoc.mpazpro.data.local.entity.AsignacionEntity
 import cl.duoc.mpazpro.data.local.entity.AsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.ContenidoEntity
 import cl.duoc.mpazpro.data.local.entity.CursoEntity
@@ -39,9 +41,11 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
         // Bloque 2: personas y acceso
         UsuarioEntity::class,
         CursoEntity::class,
-        DocenteAsignaturaEntity::class
+        DocenteAsignaturaEntity::class,
+        // Bloque 3: asignación del docente
+        AsignacionEntity::class
     ],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -59,6 +63,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
     abstract fun cursoDao(): CursoDao
     abstract fun docenteAsignaturaDao(): DocenteAsignaturaDao
+
+    // Bloque 3
+    abstract fun asignacionDao(): AsignacionDao
 
     companion object {
         @Volatile
