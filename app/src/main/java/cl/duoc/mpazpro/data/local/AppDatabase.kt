@@ -35,6 +35,7 @@ import cl.duoc.mpazpro.data.local.entity.PreguntaEntity
 import cl.duoc.mpazpro.data.local.entity.RespuestaEntity
 import cl.duoc.mpazpro.data.local.entity.UnidadEntity
 import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
+import cl.duoc.mpazpro.data.seguridad.PasswordHasher
 
 @Database(
     entities = [
@@ -58,7 +59,7 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
         ObservacionDocenteEntity::class,
         HistorialCambioEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -123,6 +124,26 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** Inserta un usuario calculando el hash de su contraseña. */
+        private fun insertarUsuario(
+            db: SupportSQLiteDatabase,
+            id: Long,
+            nombre: String,
+            nombreUsuario: String,
+            password: String,
+            rol: String,
+            cursoId: Long?
+        ) {
+            val credencial = PasswordHasher.generar(password)
+            db.execSQL(
+                """
+                INSERT INTO usuario (id, nombre, nombreUsuario, passwordHash, passwordSal, rol, cursoId, activo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+                """,
+                arrayOf(id, nombre, nombreUsuario, credencial.hash, credencial.sal, rol, cursoId)
+            )
+        }
+
         private fun insertarDatosIniciales(db: SupportSQLiteDatabase) {
             db.beginTransaction()
             try {
@@ -132,12 +153,12 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (3, 'Ciencias Naturales', '#43A047')")
                 db.execSQL("INSERT INTO asignatura (id, nombre, colorHex) VALUES (4, 'Historia', '#FB8C00')")
 
-                // ---------- Usuarios (todos ficticios) ----------
+                // ---------- Usuarios de prueba (todos ficticios) ----------
                 // 1) Jefatura UTP y docentes: sin curso
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (1, 'Jefatura UTP', 'JEFATURA_UTP', NULL)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (2, 'Profesora Ana', 'DOCENTE', NULL)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (3, 'Profesor Carlos', 'DOCENTE', NULL)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (4, 'Profesora Daniela', 'DOCENTE', NULL)")
+                insertarUsuario(db, 1, "Jefatura UTP", "utp", "utp123", "JEFATURA_UTP", null)
+                insertarUsuario(db, 2, "Profesora Ana", "ana", "ana123", "DOCENTE", null)
+                insertarUsuario(db, 3, "Profesor Carlos", "carlos", "carlos123", "DOCENTE", null)
+                insertarUsuario(db, 4, "Profesora Daniela", "daniela", "daniela123", "DOCENTE", null)
 
                 // 2) El curso, con la Profesora Ana (id 2) como profesora jefe
                 db.execSQL("INSERT INTO curso (id, nombre, profesorJefeId) VALUES (1, '2.º A', 2)")
@@ -148,10 +169,10 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("INSERT INTO docente_asignatura (cursoId, asignaturaId, docenteId) VALUES (1, 3, 4)")
 
                 // 4) Los estudiantes, en el curso 1
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (5, 'Tomás', 'ESTUDIANTE', 1)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (6, 'Sofía', 'ESTUDIANTE', 1)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (7, 'Benjamín', 'ESTUDIANTE', 1)")
-                db.execSQL("INSERT INTO usuario (id, nombre, rol, cursoId) VALUES (8, 'Isidora', 'ESTUDIANTE', 1)")
+                insertarUsuario(db, 5, "Tomás", "tomas", "1234", "ESTUDIANTE", 1)
+                insertarUsuario(db, 6, "Sofía", "sofia", "1234", "ESTUDIANTE", 1)
+                insertarUsuario(db, 7, "Benjamín", "benjamin", "1234", "ESTUDIANTE", 1)
+                insertarUsuario(db, 8, "Isidora", "isidora", "1234", "ESTUDIANTE", 1)
 
                 db.setTransactionSuccessful()
             } finally {

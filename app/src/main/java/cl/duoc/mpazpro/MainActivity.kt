@@ -42,16 +42,17 @@ class MainActivity : ComponentActivity() {
         // TEMPORAL: comprobar que Room funciona. Borrar después.
         lifecycleScope.launch {
             val container = (application as MpazApp).container
-
-            // Usuarios y permisos
             val usuarios = container.usuarioRepository
-            val estudiantes = usuarios.perfilesPorRol(Rol.ESTUDIANTE).first()
-            Log.d("MPAZ2", "Estudiantes: ${estudiantes.map { it.nombre }}")
-            Log.d("MPAZ2", "Carlos → Lenguaje: ${usuarios.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 1)}")
 
-            // Reglas del flujo de estados (sin tocar la base de datos)
-            Log.d("MPAZ2", "Borrador → Publicado: ${EstadoContenido.BORRADOR.puedeCambiarA(EstadoContenido.PUBLICADO)}")
-            Log.d("MPAZ2", "Borrador → En revisión: ${EstadoContenido.BORRADOR.puedeCambiarA(EstadoContenido.EN_REVISION)}")
+            Log.d("MPAZ2", "ana / ana123 → ${usuarios.iniciarSesion("ana", "ana123")}")
+            Log.d("MPAZ2", "ana / mala → ${usuarios.iniciarSesion("ana", "mala")}")
+            Log.d("MPAZ2", "noexiste / 1234 → ${usuarios.iniciarSesion("noexiste", "1234")}")
+            Log.d("MPAZ2", "  TOMAS  / 1234 → ${usuarios.iniciarSesion("  TOMAS  ", "1234")}")
+
+            // UTP (id 1) crea un estudiante nuevo; Ana (id 2) intenta hacer lo mismo
+            Log.d("MPAZ2", "UTP crea a Martina → ${usuarios.crearUsuario(1, "Martina", "martina", "1234", Rol.ESTUDIANTE, 1)}")
+            Log.d("MPAZ2", "UTP repite 'martina' → ${usuarios.crearUsuario(1, "Martina B", "martina", "1234", Rol.ESTUDIANTE, 1)}")
+            Log.d("MPAZ2", "Ana intenta crear → ${usuarios.crearUsuario(2, "Pedro", "pedro", "1234", Rol.ESTUDIANTE, 1)}")
         }
         setContent {
             MPAZPROTheme {

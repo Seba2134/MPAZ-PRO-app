@@ -16,11 +16,18 @@ import cl.duoc.mpazpro.domain.model.Rol
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index("cursoId")]
+    indices = [
+        Index("cursoId"),
+        Index(value = ["nombreUsuario"], unique = true)
+    ]
 )
 data class UsuarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val nombre: String,
+    val nombre: String,              // nombre visible
+    val nombreUsuario: String,       // para iniciar sesión: "tomas" (unico, en minúsculas)
+    val passwordHash: String,        // NUNCA la contraseña: solo su hash
+    val passwordSal: String,
     val rol: Rol,
-    val cursoId: Long? = null    // solo los estudiantes tienen curso
+    val cursoId: Long? = null,       // solo los estudiantes tienen curso
+    val activo: Boolean = true       // UTP puede desactivar una cuenta sin borrarla
 )

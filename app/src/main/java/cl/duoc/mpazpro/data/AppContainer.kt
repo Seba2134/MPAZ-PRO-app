@@ -14,6 +14,7 @@ import cl.duoc.mpazpro.data.repository.UsuarioRepository
 class AppContainer(context: Context) {
 
     private val db = AppDatabase.getInstance(context)
+    val sesion = Sesion()
 
     val contenidoRepository: ContenidoRepository by lazy {
         ContenidoRepository(
