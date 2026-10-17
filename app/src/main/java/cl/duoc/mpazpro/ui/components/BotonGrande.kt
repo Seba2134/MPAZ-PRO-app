@@ -19,10 +19,12 @@ fun BotonGrande(
     texto: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    colorFondo: Color = MaterialTheme.colorScheme.primary
+    colorFondo: Color = MaterialTheme.colorScheme.primary,
+    enabled: Boolean = true
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .height(72.dp),

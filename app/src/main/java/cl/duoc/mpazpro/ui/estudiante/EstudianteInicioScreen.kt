@@ -14,7 +14,8 @@ import cl.duoc.mpazpro.ui.components.BotonGrande
 
 @Composable
 fun EstudianteInicioScreen(
-    onVolver: () -> Unit,
+    nombre: String,
+    onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -24,11 +25,11 @@ fun EstudianteInicioScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("¡Hola!", style = MaterialTheme.typography.headlineMedium)
+        Text("¡Hola, $nombre!", style = MaterialTheme.typography.headlineMedium)
         Text("Aquí verás tus asignaturas.", style = MaterialTheme.typography.bodyLarge)
         BotonGrande(
-            texto = "Volver",
-            onClick = onVolver,
+            texto = "Cerrar sesión",
+            onClick = onCerrarSesion,
             colorFondo = MaterialTheme.colorScheme.secondary
         )
     }
