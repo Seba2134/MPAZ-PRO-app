@@ -11,9 +11,13 @@ import cl.duoc.mpazpro.data.local.dao.AsignaturaDao
 import cl.duoc.mpazpro.data.local.dao.ContenidoDao
 import cl.duoc.mpazpro.data.local.dao.CursoDao
 import cl.duoc.mpazpro.data.local.dao.DocenteAsignaturaDao
+import cl.duoc.mpazpro.data.local.dao.HistorialCambioDao
+import cl.duoc.mpazpro.data.local.dao.IntentoDao
 import cl.duoc.mpazpro.data.local.dao.ObjetivoAprendizajeDao
+import cl.duoc.mpazpro.data.local.dao.ObservacionDocenteDao
 import cl.duoc.mpazpro.data.local.dao.OpcionDao
 import cl.duoc.mpazpro.data.local.dao.PreguntaDao
+import cl.duoc.mpazpro.data.local.dao.RespuestaDao
 import cl.duoc.mpazpro.data.local.dao.UnidadDao
 import cl.duoc.mpazpro.data.local.dao.UsuarioDao
 import cl.duoc.mpazpro.data.local.entity.ActividadEntity
@@ -22,9 +26,13 @@ import cl.duoc.mpazpro.data.local.entity.AsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.ContenidoEntity
 import cl.duoc.mpazpro.data.local.entity.CursoEntity
 import cl.duoc.mpazpro.data.local.entity.DocenteAsignaturaEntity
+import cl.duoc.mpazpro.data.local.entity.HistorialCambioEntity
+import cl.duoc.mpazpro.data.local.entity.IntentoEntity
 import cl.duoc.mpazpro.data.local.entity.ObjetivoAprendizajeEntity
+import cl.duoc.mpazpro.data.local.entity.ObservacionDocenteEntity
 import cl.duoc.mpazpro.data.local.entity.OpcionEntity
 import cl.duoc.mpazpro.data.local.entity.PreguntaEntity
+import cl.duoc.mpazpro.data.local.entity.RespuestaEntity
 import cl.duoc.mpazpro.data.local.entity.UnidadEntity
 import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
 
@@ -43,9 +51,14 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
         CursoEntity::class,
         DocenteAsignaturaEntity::class,
         // Bloque 3: asignación del docente
-        AsignacionEntity::class
+        AsignacionEntity::class,
+        // Bloque 4: resultados y registro
+        IntentoEntity::class,
+        RespuestaEntity::class,
+        ObservacionDocenteEntity::class,
+        HistorialCambioEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -66,6 +79,12 @@ abstract class AppDatabase : RoomDatabase() {
 
     // Bloque 3
     abstract fun asignacionDao(): AsignacionDao
+
+    // Bloque 4
+    abstract fun intentoDao(): IntentoDao
+    abstract fun respuestaDao(): RespuestaDao
+    abstract fun observacionDocenteDao(): ObservacionDocenteDao
+    abstract fun historialCambioDao(): HistorialCambioDao
 
     companion object {
         @Volatile
