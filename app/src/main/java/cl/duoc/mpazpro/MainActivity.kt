@@ -23,10 +23,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import cl.duoc.mpazpro.data.local.AppDatabase
+import cl.duoc.mpazpro.domain.model.EstadoContenido
+import cl.duoc.mpazpro.domain.model.Rol
 import cl.duoc.mpazpro.ui.inicio.SeleccionRolScreen
 import cl.duoc.mpazpro.ui.navigation.AppNavHost
 import cl.duoc.mpazpro.ui.theme.ColorLenguaje
 import cl.duoc.mpazpro.ui.theme.MPAZPROTheme
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 
@@ -38,17 +41,17 @@ class MainActivity : ComponentActivity() {
         // TEMPORAL: comprobar que Room funciona. Borrar después.
         // TEMPORAL: comprobar que Room funciona. Borrar después.
         lifecycleScope.launch {
-            val db = AppDatabase.getInstance(applicationContext)
-            Log.d("MPAZ4", "Asignaturas: ${db.asignaturaDao().contar()}")
-            Log.d("MPAZ4", "Usuarios: ${db.usuarioDao().contar()}")
+            val container = (application as MpazApp).container
 
-            val acceso = db.docenteAsignaturaDao()
-            // Ana (2) es profesora jefe: debería tener acceso a Lenguaje (1)
-            Log.d("MPAZ4", "Ana → Lenguaje: ${acceso.tieneAcceso(docenteId = 2, cursoId = 1, asignaturaId = 1)}")
-            // Carlos (3) hace Matemática (2): sí
-            Log.d("MPAZ4", "Carlos → Matemática: ${acceso.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 2)}")
-            // Carlos (3) NO hace Lenguaje (1): no
-            Log.d("MPAZ4", "Carlos → Lenguaje: ${acceso.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 1)}")
+            // Usuarios y permisos
+            val usuarios = container.usuarioRepository
+            val estudiantes = usuarios.perfilesPorRol(Rol.ESTUDIANTE).first()
+            Log.d("MPAZ2", "Estudiantes: ${estudiantes.map { it.nombre }}")
+            Log.d("MPAZ2", "Carlos → Lenguaje: ${usuarios.tieneAcceso(docenteId = 3, cursoId = 1, asignaturaId = 1)}")
+
+            // Reglas del flujo de estados (sin tocar la base de datos)
+            Log.d("MPAZ2", "Borrador → Publicado: ${EstadoContenido.BORRADOR.puedeCambiarA(EstadoContenido.PUBLICADO)}")
+            Log.d("MPAZ2", "Borrador → En revisión: ${EstadoContenido.BORRADOR.puedeCambiarA(EstadoContenido.EN_REVISION)}")
         }
         setContent {
             MPAZPROTheme {
