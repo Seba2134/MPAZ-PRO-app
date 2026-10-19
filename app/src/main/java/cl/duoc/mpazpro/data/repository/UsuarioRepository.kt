@@ -10,6 +10,7 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
 import cl.duoc.mpazpro.data.local.relation.CursoConEstudiantes
 import cl.duoc.mpazpro.data.seguridad.PasswordHasher
 import cl.duoc.mpazpro.domain.model.Rol
+import cl.duoc.mpazpro.domain.validacion.Validaciones
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -39,7 +40,7 @@ class UsuarioRepository(
 ) {
 
     companion object {
-        const val LARGO_MINIMO_PASSWORD = 4
+        const val LARGO_MINIMO_PASSWORD = Validaciones.LARGO_MINIMO_PASSWORD
     }
 
     // ---------- Inicio de sesión ----------

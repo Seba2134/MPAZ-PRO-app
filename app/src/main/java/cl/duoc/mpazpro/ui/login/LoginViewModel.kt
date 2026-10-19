@@ -10,6 +10,7 @@ import cl.duoc.mpazpro.MpazApp
 import cl.duoc.mpazpro.data.Sesion
 import cl.duoc.mpazpro.data.repository.ResultadoLogin
 import cl.duoc.mpazpro.data.repository.UsuarioRepository
+import cl.duoc.mpazpro.domain.validacion.Validaciones
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,8 +22,12 @@ data class LoginUiState(
     val nombreUsuario: String = "",
     val password: String = "",
     val mostrarPassword: Boolean = false,
+    val errorUsuario: String? = null,      // error del campo usuario
+    val errorPassword: String? = null,     // error del campo contraseña
+    val errorGeneral: String? = null,      // "Usuario o contraseña incorrectos"
     val cargando: Boolean = false,
-    val error: String? = null
+    val intentoEnviar: Boolean = false,    // ¿ya presionó "Entrar" al menos una vez?
+    val intentosFallidos: Int = 0          // cada vez que sube, la pantalla se sacude
 )
 
 class LoginViewModel(
@@ -36,11 +41,24 @@ class LoginViewModel(
     // ---------- Eventos que llegan desde la pantalla ----------
 
     fun onNombreUsuarioChange(valor: String) {
-        _uiState.update { it.copy(nombreUsuario = valor, error = null) }
+        _uiState.update {
+            it.copy(
+                nombreUsuario = valor,
+                errorGeneral = null,
+                // Solo se valida mientras escribe si ya intentó enviar una vez
+                errorUsuario = if (it.intentoEnviar) Validaciones.nombreUsuario(valor) else null
+            )
+        }
     }
 
     fun onPasswordChange(valor: String) {
-        _uiState.update { it.copy(password = valor, error = null) }
+        _uiState.update {
+            it.copy(
+                password = valor,
+                errorGeneral = null,
+                errorPassword = if (it.intentoEnviar) Validaciones.password(valor) else null
+            )
+        }
     }
 
     fun alternarMostrarPassword() {
@@ -51,12 +69,24 @@ class LoginViewModel(
         val estado = _uiState.value
         if (estado.cargando) return
 
-        if (estado.nombreUsuario.isBlank() || estado.password.isBlank()) {
-            _uiState.update { it.copy(error = "Escribe tu usuario y tu contraseña") }
+        // 1) Validar cada campo
+        val errorUsuario = Validaciones.nombreUsuario(estado.nombreUsuario)
+        val errorPassword = Validaciones.password(estado.password)
+
+        if (errorUsuario != null || errorPassword != null) {
+            _uiState.update {
+                it.copy(
+                    intentoEnviar = true,
+                    errorUsuario = errorUsuario,
+                    errorPassword = errorPassword,
+                    intentosFallidos = it.intentosFallidos + 1
+                )
+            }
             return
         }
 
-        _uiState.update { it.copy(cargando = true, error = null) }
+        // 2) Los campos son válidos: verificar con la base de datos
+        _uiState.update { it.copy(cargando = true, intentoEnviar = true, errorGeneral = null) }
 
         viewModelScope.launch {
             when (val resultado = usuarioRepository.iniciarSesion(estado.nombreUsuario, estado.password)) {
@@ -64,26 +94,24 @@ class LoginViewModel(
                     _uiState.update { it.copy(cargando = false, password = "") }
                     sesion.iniciar(resultado.usuario)
                 }
-                ResultadoLogin.CredencialesInvalidas -> {
-                    _uiState.update {
-                        it.copy(cargando = false, password = "", error = "Usuario y/o contraseña incorrectos")
-                    }
-                }
-                ResultadoLogin.CuentaInactiva -> {
-                    _uiState.update {
-                        it.copy(
-                            cargando = false,
-                            password = "",
-                            error = "Tu cuenta está desactivada. Habla con Jefatura UTP."
-                        )
-                    }
-                }
+                ResultadoLogin.CredencialesInvalidas -> mostrarFallo("Usuario o contraseña incorrectos")
+                ResultadoLogin.CuentaInactiva -> mostrarFallo("Tu cuenta está desactivada. Habla con Jefatura UTP.")
             }
         }
     }
 
-    // ---------- Cómo se crea este ViewModel ----------
+    private fun mostrarFallo(mensaje: String) {
+        _uiState.update {
+            it.copy(
+                cargando = false,
+                password = "",
+                errorGeneral = mensaje,
+                intentosFallidos = it.intentosFallidos + 1
+            )
+        }
+    }
 
+    // ---------- Cómo se crea este ViewModel ----------
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {

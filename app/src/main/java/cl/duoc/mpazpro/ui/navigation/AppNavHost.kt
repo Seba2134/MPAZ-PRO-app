@@ -1,5 +1,10 @@
 package cl.duoc.mpazpro.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,6 +21,8 @@ import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioScreen
 import cl.duoc.mpazpro.ui.login.LoginRoute
 import cl.duoc.mpazpro.ui.utp.UtpInicioScreen
 
+private const val DURACION_TRANSICION = 350
+
 @Composable
 fun AppNavHost(
     sesion: Sesion,
@@ -29,8 +36,6 @@ fun AppNavHost(
         val destino = usuario?.let { rutaInicioDe(it.rol) } ?: Rutas.LOGIN
         if (navController.currentDestination?.route != destino) {
             navController.navigate(destino) {
-                // Borra todo el historial: no se puede "volver" al login estando
-                // conectado, ni volver a una pantalla privada después de cerrar sesión.
                 popUpTo(navController.graph.id) { inclusive = true }
                 launchSingleTop = true
             }
@@ -40,7 +45,23 @@ fun AppNavHost(
     NavHost(
         navController = navController,
         startDestination = Rutas.LOGIN,
-        modifier = modifier
+        modifier = modifier,
+        // Al avanzar: la pantalla nueva entra desde la derecha y aparece suavemente
+        enterTransition = {
+            slideInHorizontally(tween(DURACION_TRANSICION)) { ancho -> ancho / 4 } +
+                    fadeIn(tween(DURACION_TRANSICION))
+        },
+        exitTransition = {
+            fadeOut(tween(DURACION_TRANSICION))
+        },
+        // Al volver: la pantalla actual sale hacia la derecha
+        popEnterTransition = {
+            fadeIn(tween(DURACION_TRANSICION))
+        },
+        popExitTransition = {
+            slideOutHorizontally(tween(DURACION_TRANSICION)) { ancho -> ancho / 4 } +
+                    fadeOut(tween(DURACION_TRANSICION))
+        }
     ) {
         composable(Rutas.LOGIN) {
             LoginRoute()
