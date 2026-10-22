@@ -70,7 +70,9 @@ class UsuarioRepository(
     /** Jefatura UTP crea una cuenta de estudiante o de docente. */
     suspend fun crearUsuario(
         creadorId: Long,
+        run: String,
         nombre: String,
+        correo: String,
         nombreUsuario: String,
         password: String,
         rol: Rol,
@@ -89,7 +91,9 @@ class UsuarioRepository(
 
         usuarioDao.insertar(
             UsuarioEntity(
+                run = run.trim(),
                 nombre = nombre.trim(),
+                correo = correo.trim(),
                 nombreUsuario = usuarioNormalizado,
                 passwordHash = credencial.hash,
                 passwordSal = credencial.sal,
