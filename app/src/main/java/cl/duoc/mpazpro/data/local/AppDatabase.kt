@@ -58,7 +58,7 @@ import cl.duoc.mpazpro.data.local.entity.UsuarioEntity
         ObservacionDocenteEntity::class,
         HistorialCambioEntity::class
     ],
-    version = 10,
+    version = 11,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -219,7 +219,9 @@ object DatosIniciales {
         val credencial = PasswordHasher.generar(password)
         insertar(db, "usuario", ContentValues().apply {
             put("id", id)
+            put("run", "12345512")
             put("nombre", nombre)
+            put("correo", "$nombreUsuario@mpazpro.cl")      // correo ficticio
             put("nombreUsuario", nombreUsuario)
             put("passwordHash", credencial.hash)
             put("passwordSal", credencial.sal)
