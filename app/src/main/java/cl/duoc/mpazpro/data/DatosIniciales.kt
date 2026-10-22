@@ -267,9 +267,11 @@ object DatosIniciales {
             put("unidadId", unidadId)
             put("asignadoPorId", PROFESORA_JEFE_ID)
             put("fechaAsignacion", ahora)
+            put("instrucciones", "Lee con calma cada pregunta. ¡Tú puedes!")
             put("intentosMaxPrueba", 2)
             putNull("fechaInicioPrueba")
             putNull("fechaFinPrueba")
+            put("mostrarRespuestas", 1)
         })
 
         return unidadId

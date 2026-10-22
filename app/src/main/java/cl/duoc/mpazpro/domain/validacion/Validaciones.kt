@@ -1,6 +1,7 @@
 package cl.duoc.mpazpro.domain.validacion
 
 import cl.duoc.mpazpro.domain.model.Rol
+import java.time.LocalDate
 
 /**
  * Reglas de validación de los formularios.
@@ -9,11 +10,17 @@ import cl.duoc.mpazpro.domain.model.Rol
  */
 object Validaciones {
 
+    // ---------- Constantes ----------
     const val LARGO_MINIMO_PASSWORD = 4
+    const val INTENTOS_MINIMOS = 1
+    const val INTENTOS_MAXIMOS = 5
+    const val LARGO_MAXIMO_INSTRUCCIONES = 120
     private const val LARGO_MINIMO_USUARIO = 3
     private const val LARGO_MINIMO_NOMBRE = 2
 
     private val PATRON_CORREO = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+
+    // ---------- Login y cuentas ----------
 
     fun nombreUsuario(valor: String): String? {
         val limpio = valor.trim()
@@ -54,4 +61,47 @@ object Validaciones {
     /** Un estudiante debe pertenecer a un curso; un docente no. */
     fun cursoDelEstudiante(rol: Rol, cursoId: Long?): String? =
         if (rol == Rol.ESTUDIANTE && cursoId == null) "Elige el curso del estudiante" else null
+
+    // ---------- Configurar prueba ----------
+
+    fun instrucciones(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe las instrucciones para tus estudiantes"
+            limpio.length > LARGO_MAXIMO_INSTRUCCIONES ->
+                "Máximo $LARGO_MAXIMO_INSTRUCCIONES caracteres (llevas ${limpio.length})"
+            else -> null
+        }
+    }
+
+    /** Los intentos llegan como texto desde el formulario: se valida que sea un número en el rango. */
+    fun intentos(valor: String): String? {
+        val limpio = valor.trim()
+        val numero = limpio.toIntOrNull()
+        return when {
+            limpio.isEmpty() -> "Escribe la cantidad de intentos"
+            numero == null -> "Escribe solo números"
+            numero !in INTENTOS_MINIMOS..INTENTOS_MAXIMOS ->
+                "Debe ser entre $INTENTOS_MINIMOS y $INTENTOS_MAXIMOS intentos"
+            else -> null
+        }
+    }
+
+    /**
+     * La apertura es obligatoria y no puede ser pasada.
+     * Excepción: si ya estaba guardada (la prueba ya abrió), se permite mantenerla.
+     */
+    fun fechaApertura(fecha: LocalDate?, hoy: LocalDate, fechaGuardada: LocalDate?): String? = when {
+        fecha == null -> "Elige la fecha de apertura"
+        fecha.isBefore(hoy) && fecha != fechaGuardada -> "La fecha de apertura no puede ser pasada"
+        else -> null
+    }
+
+    /** El cierre solo se exige si NO está activado "sin fecha límite", y no puede ser antes de la apertura. */
+    fun fechaCierre(apertura: LocalDate?, cierre: LocalDate?, sinFechaLimite: Boolean): String? = when {
+        sinFechaLimite -> null
+        cierre == null -> "Elige la fecha de cierre"
+        apertura != null && cierre.isBefore(apertura) -> "El cierre no puede ser antes de la apertura"
+        else -> null
+    }
 }
