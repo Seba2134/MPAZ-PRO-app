@@ -197,5 +197,3 @@ fun CrearUsuarioScreen(
         }
     }
 }
-
-/** Mensaje de error con ícono, que aparece y desaparece con animación. */
