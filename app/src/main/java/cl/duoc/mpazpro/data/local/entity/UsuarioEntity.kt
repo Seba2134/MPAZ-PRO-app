@@ -23,7 +23,9 @@ import cl.duoc.mpazpro.domain.model.Rol
 )
 data class UsuarioEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val run: String = "",            // RUT / RUN del usuario
     val nombre: String,              // nombre visible
+    val correo: String = "",         // Correo institucional
     val nombreUsuario: String,       // para iniciar sesión: "tomas" (unico, en minúsculas)
     val passwordHash: String,        // NUNCA la contraseña: solo su hash
     val passwordSal: String,

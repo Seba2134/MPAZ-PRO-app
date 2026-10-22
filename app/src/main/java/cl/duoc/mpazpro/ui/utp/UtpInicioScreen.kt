@@ -15,6 +15,7 @@ import cl.duoc.mpazpro.ui.components.BotonGrande
 @Composable
 fun UtpInicioScreen(
     nombre: String,
+    onCrearUsuario: () -> Unit, // <-- Agregado
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -27,6 +28,16 @@ fun UtpInicioScreen(
     ) {
         Text("Hola, $nombre", style = MaterialTheme.typography.headlineMedium)
         Text("Panel de Jefatura UTP", style = MaterialTheme.typography.bodyLarge)
-        BotonGrande(texto = "Cerrar sesión", onClick = onCerrarSesion)
+
+        // Botón para ir al formulario de creación
+        BotonGrande(
+            texto = "Crear nuevo usuario",
+            onClick = onCrearUsuario
+        )
+
+        BotonGrande(
+            texto = "Cerrar sesión",
+            onClick = onCerrarSesion
+        )
     }
 }

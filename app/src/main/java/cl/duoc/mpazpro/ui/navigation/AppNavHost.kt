@@ -69,12 +69,26 @@ fun AppNavHost(
         composable(Rutas.UTP_INICIO) {
             UtpInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
+                onCrearUsuario = {
+                    navController.navigate(Rutas.UTP_CREAR_USUARIO)
+                },
                 onCerrarSesion = sesion::cerrar
+            )
+        }
+        composable(Rutas.UTP_CREAR_USUARIO) {
+            cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute(
+                onVolver = { navController.popBackStack() }
             )
         }
         composable(Rutas.DOCENTE_INICIO) {
             DocenteInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
+                onTomarAsistencia = {
+                    navController.navigate(Rutas.DOCENTE_ASISTENCIA)
+                },
+                onRegistrarNotas = {
+                    navController.navigate(Rutas.DOCENTE_NOTAS)
+                },
                 onCerrarSesion = sesion::cerrar
             )
         }
@@ -82,6 +96,17 @@ fun AppNavHost(
             EstudianteInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
                 onCerrarSesion = sesion::cerrar
+            )
+        }
+        composable(Rutas.DOCENTE_ASISTENCIA) {
+            cl.duoc.mpazpro.ui.docente.DocenteAsistenciaScreen(
+                onVolver = { navController.popBackStack() }
+            )
+        }
+
+        composable(Rutas.DOCENTE_NOTAS) {
+            cl.duoc.mpazpro.ui.docente.DocenteNotasScreen(
+                onVolver = { navController.popBackStack() }
             )
         }
     }
