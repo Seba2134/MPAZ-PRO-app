@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Warning
@@ -19,18 +18,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
+/** Mensaje de error con ícono ⚠️ que aparece y desaparece con animación. Si [mensaje] es null, no se ve. */
 @Composable
-fun MensajeError(
-    mensaje: String?,
-    modifier: Modifier = Modifier
-) {
+fun MensajeError(mensaje: String?, modifier: Modifier = Modifier) {
     AnimatedVisibility(
         visible = mensaje != null,
+        modifier = modifier,
         enter = fadeIn() + expandVertically(),
         exit = fadeOut() + shrinkVertically()
     ) {
         Row(
-            modifier = modifier.padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {

@@ -219,7 +219,7 @@ object DatosIniciales {
         val credencial = PasswordHasher.generar(password)
         insertar(db, "usuario", ContentValues().apply {
             put("id", id)
-            put("run", "12345512")
+            put("run", "")
             put("nombre", nombre)
             put("correo", "$nombreUsuario@mpazpro.cl")      // correo ficticio
             put("nombreUsuario", nombreUsuario)
@@ -267,9 +267,11 @@ object DatosIniciales {
             put("unidadId", unidadId)
             put("asignadoPorId", PROFESORA_JEFE_ID)
             put("fechaAsignacion", ahora)
+            put("instrucciones", "Lee con calma cada pregunta. ¡Tú puedes!")
             put("intentosMaxPrueba", 2)
             putNull("fechaInicioPrueba")
             putNull("fechaFinPrueba")
+            put("mostrarRespuestas", 1)
         })
 
         return unidadId

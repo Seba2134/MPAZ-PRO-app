@@ -6,7 +6,9 @@ import cl.duoc.mpazpro.data.local.dao.UnidadDao
 import cl.duoc.mpazpro.data.local.entity.AsignacionEntity
 import cl.duoc.mpazpro.data.local.entity.AsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.UnidadEntity
+import cl.duoc.mpazpro.data.local.relation.PruebaDocente
 import cl.duoc.mpazpro.domain.model.EstadoContenido
+import cl.duoc.mpazpro.domain.validacion.Validaciones
 import kotlinx.coroutines.flow.Flow
 
 /** Posibles resultados al intentar asignar una unidad. */
@@ -15,6 +17,14 @@ enum class ResultadoAsignacion {
     NO_DISPONIBLE,  // la unidad no existe o UTP aún no la autoriza
     SIN_ACCESO,     // el docente no hace esa asignatura en ese curso
     YA_ASIGNADA     // el curso ya tenía esa unidad
+}
+
+/** Posibles resultados al guardar la configuración de una prueba. */
+enum class ResultadoConfiguracion {
+    GUARDADA,
+    DATOS_INVALIDOS,
+    SIN_ACCESO,
+    NO_ENCONTRADA
 }
 
 /** El docente asigna unidades a su curso y configura la prueba; el estudiante ve lo asignado. */
@@ -28,6 +38,16 @@ class AsignacionRepository(
 
     fun unidadesDisponibles(asignaturaId: Long): Flow<List<UnidadEntity>> =
         asignacionDao.obtenerUnidadesDisponibles(asignaturaId)
+
+    /** Las pruebas que el docente puede configurar (ya filtradas por sus permisos). */
+    fun pruebasDelDocente(docenteId: Long): Flow<List<PruebaDocente>> =
+        asignacionDao.obtenerPruebasDelDocente(docenteId)
+
+    suspend fun detallePrueba(asignacionId: Long): PruebaDocente? =
+        asignacionDao.obtenerDetallePrueba(asignacionId)
+
+    suspend fun asignacionPorId(asignacionId: Long): AsignacionEntity? =
+        asignacionDao.obtenerPorId(asignacionId)
 
     fun asignacionesDelCurso(cursoId: Long): Flow<List<AsignacionEntity>> =
         asignacionDao.obtenerPorCurso(cursoId)
@@ -56,30 +76,47 @@ class AsignacionRepository(
     }
 
     /**
-     * Configura los intentos y las fechas de la prueba final.
-     * @return false si los datos no son válidos o el docente no tiene acceso.
+     * Guarda la configuración de la prueba final, verificando los datos y los permisos del docente.
+     * Las fechas van en milisegundos; null significa "sin restricción".
      */
     suspend fun configurarPrueba(
         docenteId: Long,
-        asignacion: AsignacionEntity,
+        asignacionId: Long,
+        instrucciones: String,
         intentosMax: Int,
         fechaInicio: Long?,
-        fechaFin: Long?
-    ): Boolean {
-        if (intentosMax < 1) return false
-        if (fechaInicio != null && fechaFin != null && fechaFin <= fechaInicio) return false
+        fechaFin: Long?,
+        mostrarRespuestas: Boolean
+    ): ResultadoConfiguracion {
+        // 1) Datos válidos (la última protección, aunque la pantalla ya validó)
+        if (instrucciones.isBlank()) return ResultadoConfiguracion.DATOS_INVALIDOS
+        if (intentosMax !in Validaciones.INTENTOS_MINIMOS..Validaciones.INTENTOS_MAXIMOS) {
+            return ResultadoConfiguracion.DATOS_INVALIDOS
+        }
+        if (fechaInicio != null && fechaFin != null && fechaFin <= fechaInicio) {
+            return ResultadoConfiguracion.DATOS_INVALIDOS
+        }
 
-        val unidad = unidadDao.obtenerPorId(asignacion.unidadId) ?: return false
-        if (!docenteAsignaturaDao.tieneAcceso(docenteId, asignacion.cursoId, unidad.asignaturaId)) return false
+        // 2) La prueba existe
+        val asignacion = asignacionDao.obtenerPorId(asignacionId) ?: return ResultadoConfiguracion.NO_ENCONTRADA
+        val unidad = unidadDao.obtenerPorId(asignacion.unidadId) ?: return ResultadoConfiguracion.NO_ENCONTRADA
 
+        // 3) El docente tiene acceso a esa asignatura en ese curso
+        if (!docenteAsignaturaDao.tieneAcceso(docenteId, asignacion.cursoId, unidad.asignaturaId)) {
+            return ResultadoConfiguracion.SIN_ACCESO
+        }
+
+        // 4) Guardar
         asignacionDao.actualizar(
             asignacion.copy(
+                instrucciones = instrucciones,
                 intentosMaxPrueba = intentosMax,
                 fechaInicioPrueba = fechaInicio,
-                fechaFinPrueba = fechaFin
+                fechaFinPrueba = fechaFin,
+                mostrarRespuestas = mostrarRespuestas
             )
         )
-        return true
+        return ResultadoConfiguracion.GUARDADA
     }
 
     // ---------- Estudiante ----------

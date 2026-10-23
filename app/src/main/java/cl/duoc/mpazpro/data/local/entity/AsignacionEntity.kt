@@ -41,11 +41,13 @@ data class AsignacionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val cursoId: Long,
     val unidadId: Long,
-    val asignadoPorId: Long?,            // el docente que la asignó
+    val asignadoPorId: Long?,             // el docente que la asignó
     val fechaAsignacion: Long = System.currentTimeMillis(),
 
-    // ---- Configuración de la prueba final (la define el docente) ----
+    //Configuración de la prueba final
+    val instrucciones: String = "",       // mensaje del docente para sus estudiantes
     val intentosMaxPrueba: Int = 2,
     val fechaInicioPrueba: Long? = null,  // null = disponible desde ya
-    val fechaFinPrueba: Long? = null      // null = sin fecha límite
+    val fechaFinPrueba: Long? = null,     // null = sin fecha límite
+    val mostrarRespuestas: Boolean = true // ¿el estudiante ve las respuestas correctas al terminar?
 )

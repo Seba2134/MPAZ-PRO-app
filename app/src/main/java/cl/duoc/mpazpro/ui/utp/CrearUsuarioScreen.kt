@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import cl.duoc.mpazpro.domain.model.Rol
 import cl.duoc.mpazpro.ui.components.BotonGrande
 import cl.duoc.mpazpro.ui.components.CampoTexto
+import cl.duoc.mpazpro.ui.components.MensajeError
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,33 +193,6 @@ fun CrearUsuarioScreen(
                 texto = if (uiState.cargando) "Guardando..." else "Guardar usuario",
                 onClick = onGuardar,
                 cargando = uiState.cargando
-            )
-        }
-    }
-}
-
-/** Mensaje de error con ícono, que aparece y desaparece con animación. */
-@Composable
-private fun MensajeError(mensaje: String?) {
-    AnimatedVisibility(
-        visible = mensaje != null,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically()
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Warning,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(18.dp)
-            )
-            Text(
-                text = mensaje.orEmpty(),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium
             )
         }
     }

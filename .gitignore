@@ -16,3 +16,6 @@ local.properties
 # Llaves de firma (nunca subir)
 *.jks
 *.keystore
+
+# Archivos temporales de Kotlin
+.kotlin/

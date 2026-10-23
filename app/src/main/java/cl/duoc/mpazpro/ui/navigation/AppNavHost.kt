@@ -9,16 +9,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import cl.duoc.mpazpro.data.Sesion
 import cl.duoc.mpazpro.domain.model.Rol
-import cl.duoc.mpazpro.ui.docente.DocenteInicioScreen
+import cl.duoc.mpazpro.ui.docente.ConfigurarPruebaRoute
+import cl.duoc.mpazpro.ui.docente.DocenteInicioRoute
 import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioScreen
 import cl.duoc.mpazpro.ui.login.LoginRoute
+import cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute
 import cl.duoc.mpazpro.ui.utp.UtpInicioScreen
 
 private const val DURACION_TRANSICION = 350
@@ -31,14 +38,21 @@ fun AppNavHost(
 ) {
     val usuario by sesion.usuarioActual.collectAsState()
 
-    // Cada vez que cambia la sesión, se decide a dónde ir.
-    LaunchedEffect(usuario) {
+    // El id del usuario para el que ya se navegó. Sobrevive al girar la pantalla,
+    // así la navegación solo ocurre cuando alguien inicia o cierra sesión.
+    var usuarioNavegadoId by rememberSaveable { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(usuario?.id) {
+        val idActual = usuario?.id
+        if (idActual == usuarioNavegadoId) return@LaunchedEffect   // mismo usuario: no tocar la navegación
+        usuarioNavegadoId = idActual
+
         val destino = usuario?.let { rutaInicioDe(it.rol) } ?: Rutas.LOGIN
-        if (navController.currentDestination?.route != destino) {
-            navController.navigate(destino) {
-                popUpTo(navController.graph.id) { inclusive = true }
-                launchSingleTop = true
-            }
+        navController.navigate(destino) {
+            // Borra el historial: no se puede volver al login estando conectado,
+            // ni a una pantalla privada después de cerrar sesión.
+            popUpTo(navController.graph.id) { inclusive = true }
+            launchSingleTop = true
         }
     }
 
@@ -46,7 +60,6 @@ fun AppNavHost(
         navController = navController,
         startDestination = Rutas.LOGIN,
         modifier = modifier,
-        // Al avanzar: la pantalla nueva entra desde la derecha y aparece suavemente
         enterTransition = {
             slideInHorizontally(tween(DURACION_TRANSICION)) { ancho -> ancho / 4 } +
                     fadeIn(tween(DURACION_TRANSICION))
@@ -54,7 +67,6 @@ fun AppNavHost(
         exitTransition = {
             fadeOut(tween(DURACION_TRANSICION))
         },
-        // Al volver: la pantalla actual sale hacia la derecha
         popEnterTransition = {
             fadeIn(tween(DURACION_TRANSICION))
         },
@@ -63,59 +75,49 @@ fun AppNavHost(
                     fadeOut(tween(DURACION_TRANSICION))
         }
     ) {
+        // ---------- Login ----------
         composable(Rutas.LOGIN) {
             LoginRoute()
         }
+
+        // ---------- Jefatura UTP ----------
         composable(Rutas.UTP_INICIO) {
             UtpInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
-                onCrearUsuario = {
-                    navController.navigate(Rutas.UTP_CREAR_USUARIO)
-                },
-                onCrearContenido = {
-                    navController.navigate(Rutas.UTP_CREAR_CONTENIDO)
-                },
+                onCrearUsuario = { navController.navigate(Rutas.UTP_CREAR_USUARIO) },
                 onCerrarSesion = sesion::cerrar
             )
         }
         composable(Rutas.UTP_CREAR_USUARIO) {
-            cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute(
-                onVolver = { navController.popBackStack() }
-            )
+            CrearUsuarioRoute(onVolver = { navController.popBackStack() })
         }
+
+        // ---------- Docente ----------
         composable(Rutas.DOCENTE_INICIO) {
-            DocenteInicioScreen(
+            DocenteInicioRoute(
+                docenteId = usuario?.id ?: 0L,
                 nombre = usuario?.nombre.orEmpty(),
-                onTomarAsistencia = {
-                    navController.navigate(Rutas.DOCENTE_ASISTENCIA)
-                },
-                onRegistrarNotas = {
-                    navController.navigate(Rutas.DOCENTE_NOTAS)
+                onConfigurarPrueba = { asignacionId ->
+                    navController.navigate(Rutas.configurarPrueba(asignacionId))
                 },
                 onCerrarSesion = sesion::cerrar
             )
         }
+        composable(
+            route = Rutas.DOCENTE_CONFIGURAR_PRUEBA,
+            arguments = listOf(navArgument("asignacionId") { type = NavType.LongType })
+        ) { entrada ->
+            ConfigurarPruebaRoute(
+                asignacionId = entrada.arguments?.getLong("asignacionId") ?: 0L,
+                onVolver = { navController.popBackStack() }
+            )
+        }
+
+        // ---------- Estudiante ----------
         composable(Rutas.ESTUDIANTE_INICIO) {
             EstudianteInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
                 onCerrarSesion = sesion::cerrar
-            )
-        }
-        composable(Rutas.DOCENTE_ASISTENCIA) {
-            cl.duoc.mpazpro.ui.docente.DocenteAsistenciaScreen(
-                onVolver = { navController.popBackStack() }
-            )
-        }
-
-        composable(Rutas.DOCENTE_NOTAS) {
-            cl.duoc.mpazpro.ui.docente.DocenteNotasScreen(
-                onVolver = { navController.popBackStack() }
-            )
-        }
-
-        composable(Rutas.UTP_CREAR_CONTENIDO) {
-            cl.duoc.mpazpro.ui.utp.CrearContenidoRoute(
-                onVolver = { navController.popBackStack() }
             )
         }
     }
