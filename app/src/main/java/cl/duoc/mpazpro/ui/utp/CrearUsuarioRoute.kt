@@ -13,7 +13,7 @@ fun CrearUsuarioRoute(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    // Si la cuenta se crea exitosamente, volvemos a la pantalla anterior
+    // Si la cuenta se crea correctamente, se vuelve a la pantalla anterior
     LaunchedEffect(uiState.exito) {
         if (uiState.exito) {
             onVolver()
@@ -27,7 +27,9 @@ fun CrearUsuarioRoute(
         onCorreoChange = viewModel::onCorreoChange,
         onUsuarioChange = viewModel::onUsuarioChange,
         onPasswordChange = viewModel::onPasswordChange,
+        onAlternarMostrarPassword = viewModel::alternarMostrarPassword,
         onRolChange = viewModel::onRolChange,
+        onCursoChange = viewModel::onCursoChange,
         onGuardar = viewModel::guardarUsuario,
         onVolver = onVolver
     )
