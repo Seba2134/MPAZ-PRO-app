@@ -7,14 +7,15 @@ App Android para la Escuela Escritora Marcela Paz (San Bernardo), pensada para 2
 - Martina Brandt
 
 ## Funcionalidades
-- *Inicio de sesión por rol* (Jefatura UTP, Docente, Estudiante). Las contraseñas se guardan cifradas con PBKDF2 + HMAC-SHA256 y sal aleatoria.
+- **Inicio de sesión por rol** (Jefatura UTP, Docente, Estudiante). Las contraseñas se guardan cifradas con PBKDF2 + HMAC-SHA256 y sal aleatoria.
 - **Jefatura UTP**
   - Crear usuarios (estudiantes y docentes), con validaciones por campo.
   - Crear contenido para un objetivo de aprendizaje: texto, ejemplo, **foto con la cámara** o **audio grabado con el micrófono**.
   - Administrar cursos: crear y eliminar cursos (solo sin estudiantes), elegir al profesor jefe y al docente de cada asignatura.
-- Recursos nativos: cámara y micrófono. Los permisos se piden solo al usarlos y se manejan los casos de rechazo, incluido el rechazo permanente (botón a Ajustes). Los archivos se guardan en el almacenamiento interno de la app.
-- - **Estudiante:** ve su curso y las unidades que tiene por cursar en cada asignatura, con el estado de su prueba final.
-- Arquitectura: MVVM, Jetpack Compose + Material 3 y persistencia local con Room. Las validaciones están separadas de la interfaz.
+- **Docente:** ver sus pruebas y configurarlas (instrucciones, intentos, fechas de apertura y cierre, mostrar respuestas). El profesor jefe ve todas las asignaturas de su curso; el de asignatura, solo las suyas.
+- **Estudiante:** ve su curso y las unidades que tiene por cursar en cada asignatura, con el estado de su prueba final.
+- **Recursos nativos:** cámara y micrófono. Los permisos se piden solo al usarlos y se manejan los casos de rechazo, incluido el rechazo permanente (botón a Ajustes). Los archivos se guardan en el almacenamiento interno de la app.
+- **Arquitectura:** MVVM, Jetpack Compose + Material 3 y persistencia local con Room. Las validaciones están separadas de la interfaz.
 
 ## Cómo ejecutar
 1. Clonar el repositorio: `git clone https://github.com/Seba2134/MPAZ-PRO-app.git`
