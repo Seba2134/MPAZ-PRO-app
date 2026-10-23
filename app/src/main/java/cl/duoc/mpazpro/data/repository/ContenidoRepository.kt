@@ -16,12 +16,13 @@ import cl.duoc.mpazpro.data.local.entity.ObjetivoAprendizajeEntity
 import cl.duoc.mpazpro.data.local.entity.OpcionEntity
 import cl.duoc.mpazpro.data.local.entity.PreguntaEntity
 import cl.duoc.mpazpro.data.local.entity.UnidadEntity
+import cl.duoc.mpazpro.data.local.relation.OaConUnidad
 import cl.duoc.mpazpro.data.local.relation.PreguntaConOpciones
 import cl.duoc.mpazpro.domain.model.EstadoContenido
 import kotlinx.coroutines.flow.Flow
 
 /**
- * todo el contenido pedagógico: lo crea Jefatura UTP y lo leen docentes y estudiantes.
+ * Maneja todo el contenido pedagógico: lo crea Jefatura UTP y lo leen docentes y estudiantes.
  * Incluye el flujo de estados de las unidades, con su historial.
  */
 class ContenidoRepository(
@@ -47,7 +48,13 @@ class ContenidoRepository(
 
     fun objetivos(unidadId: Long): Flow<List<ObjetivoAprendizajeEntity>> = objetivoDao.obtenerPorUnidad(unidadId)
 
+    /** Todos los OA con su unidad (para el selector de "Crear contenido"). */
+    fun objetivosConUnidad(): Flow<List<OaConUnidad>> = objetivoDao.obtenerTodosConUnidad()
+
     fun contenidos(oaId: Long): Flow<List<ContenidoEntity>> = contenidoDao.obtenerPorOa(oaId)
+
+    /** El siguiente número de orden libre para un contenido nuevo en ese OA. */
+    suspend fun siguienteOrden(oaId: Long): Int = contenidoDao.siguienteOrden(oaId)
 
     fun actividades(unidadId: Long): Flow<List<ActividadEntity>> = actividadDao.obtenerPorUnidad(unidadId)
 

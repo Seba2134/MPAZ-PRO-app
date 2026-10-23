@@ -72,6 +72,9 @@ fun AppNavHost(
                 onCrearUsuario = {
                     navController.navigate(Rutas.UTP_CREAR_USUARIO)
                 },
+                onCrearContenido = {
+                    navController.navigate(Rutas.UTP_CREAR_CONTENIDO)
+                },
                 onCerrarSesion = sesion::cerrar
             )
         }
@@ -106,6 +109,12 @@ fun AppNavHost(
 
         composable(Rutas.DOCENTE_NOTAS) {
             cl.duoc.mpazpro.ui.docente.DocenteNotasScreen(
+                onVolver = { navController.popBackStack() }
+            )
+        }
+
+        composable(Rutas.UTP_CREAR_CONTENIDO) {
+            cl.duoc.mpazpro.ui.utp.CrearContenidoRoute(
                 onVolver = { navController.popBackStack() }
             )
         }

@@ -44,6 +44,7 @@ fun CampoTexto(
     mostrarPassword: Boolean = false,
     onAlternarMostrarPassword: () -> Unit = {},
     enabled: Boolean = true,
+    multilinea: Boolean = false,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
@@ -85,7 +86,9 @@ fun CampoTexto(
             value = valor,
             onValueChange = onValorChange,
             label = { Text(etiqueta) },
-            singleLine = true,
+            singleLine = !multilinea,
+            minLines = if (multilinea) 3 else 1,
+            maxLines = if (multilinea) 6 else 1,
             enabled = enabled,
             isError = hayError,
             textStyle = MaterialTheme.typography.bodyLarge,

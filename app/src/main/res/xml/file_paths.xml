@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carpetas internas que el FileProvider puede compartir -->
+<paths>
+    <files-path
+        name="contenidos"
+        path="contenidos/" />
+</paths>
