@@ -5,6 +5,7 @@ object Rutas {
 
     const val UTP_INICIO = "utp/inicio"
     const val UTP_CREAR_USUARIO = "utp/crear-usuario"
+    const val UTP_CREAR_CONTENIDO = "utp/crear-contenido"
 
     const val DOCENTE_INICIO = "docente/inicio"
     const val DOCENTE_CONFIGURAR_PRUEBA = "docente/prueba/{asignacionId}"

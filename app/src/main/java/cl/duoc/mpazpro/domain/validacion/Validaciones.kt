@@ -2,7 +2,7 @@ package cl.duoc.mpazpro.domain.validacion
 
 import cl.duoc.mpazpro.domain.model.Rol
 import java.time.LocalDate
-
+import cl.duoc.mpazpro.domain.model.TipoContenido
 /**
  * Reglas de validación de los formularios.
  * Cada función devuelve el mensaje de error, o null si el valor es válido.
@@ -17,6 +17,8 @@ object Validaciones {
     const val LARGO_MAXIMO_INSTRUCCIONES = 120
     private const val LARGO_MINIMO_USUARIO = 3
     private const val LARGO_MINIMO_NOMBRE = 2
+    const val LARGO_MAXIMO_TEXTO_CONTENIDO = 500
+    const val ORDEN_MAXIMO = 99
 
     private val PATRON_CORREO = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
@@ -63,7 +65,6 @@ object Validaciones {
         if (rol == Rol.ESTUDIANTE && cursoId == null) "Elige el curso del estudiante" else null
 
     // ---------- Configurar prueba ----------
-
     fun instrucciones(valor: String): String? {
         val limpio = valor.trim()
         return when {
@@ -104,4 +105,44 @@ object Validaciones {
         apertura != null && cierre.isBefore(apertura) -> "El cierre no puede ser antes de la apertura"
         else -> null
     }
+
+    // ---------- Crear contenido ----------
+
+    fun objetivoSeleccionado(oaId: Long?): String? =
+        if (oaId == null) "Elige el objetivo de aprendizaje" else null
+
+    /** El texto es obligatorio en Texto y Ejemplo; en Imagen y Audio es opcional (pie o descripción). */
+    fun textoContenido(tipo: TipoContenido, texto: String): String? {
+        val limpio = texto.trim()
+        val obligatorio = tipo == TipoContenido.TEXTO || tipo == TipoContenido.EJEMPLO
+        return when {
+            obligatorio && limpio.isEmpty() -> "Escribe el texto del contenido"
+            limpio.length > LARGO_MAXIMO_TEXTO_CONTENIDO ->
+                "Máximo $LARGO_MAXIMO_TEXTO_CONTENIDO caracteres (llevas ${limpio.length})"
+            else -> null
+        }
+    }
+
+    /** Una Imagen necesita una foto y un Audio necesita una grabación. */
+    fun recursoContenido(tipo: TipoContenido, rutaFoto: String?, rutaAudio: String?): String? = when {
+        tipo == TipoContenido.IMAGEN && rutaFoto == null -> "Toma una foto para este contenido"
+        tipo == TipoContenido.AUDIO && rutaAudio == null -> "Graba el audio de este contenido"
+        else -> null
+    }
+
+    /** El orden llega como texto desde el formulario. */
+    fun orden(valor: String): String? {
+        val limpio = valor.trim()
+        val numero = limpio.toIntOrNull()
+        return when {
+            limpio.isEmpty() -> "Escribe el orden"
+            numero == null -> "Escribe solo números"
+            numero !in 1..ORDEN_MAXIMO -> "Debe ser un número entre 1 y $ORDEN_MAXIMO"
+            else -> null
+        }
+    }
+
+    /** La autoría es obligatoria (regla del caso: validar autoría y licencia). */
+    fun autor(valor: String): String? =
+        if (valor.trim().length < 2) "Escribe el autor del contenido" else null
 }

@@ -26,6 +26,7 @@ import cl.duoc.mpazpro.ui.docente.DocenteInicioRoute
 import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioScreen
 import cl.duoc.mpazpro.ui.login.LoginRoute
 import cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute
+import cl.duoc.mpazpro.ui.utp.CrearContenidoRoute
 import cl.duoc.mpazpro.ui.utp.UtpInicioScreen
 
 private const val DURACION_TRANSICION = 350
@@ -81,15 +82,20 @@ fun AppNavHost(
         }
 
         // ---------- Jefatura UTP ----------
+        // ---------- Jefatura UTP ----------
         composable(Rutas.UTP_INICIO) {
             UtpInicioScreen(
                 nombre = usuario?.nombre.orEmpty(),
                 onCrearUsuario = { navController.navigate(Rutas.UTP_CREAR_USUARIO) },
+                onCrearContenido = { navController.navigate(Rutas.UTP_CREAR_CONTENIDO) },
                 onCerrarSesion = sesion::cerrar
             )
         }
         composable(Rutas.UTP_CREAR_USUARIO) {
             CrearUsuarioRoute(onVolver = { navController.popBackStack() })
+        }
+        composable(Rutas.UTP_CREAR_CONTENIDO) {
+            CrearContenidoRoute(onVolver = { navController.popBackStack() })
         }
 
         // ---------- Docente ----------
