@@ -10,6 +10,7 @@ import cl.duoc.mpazpro.data.local.relation.PruebaDocente
 import cl.duoc.mpazpro.domain.model.EstadoContenido
 import cl.duoc.mpazpro.domain.validacion.Validaciones
 import kotlinx.coroutines.flow.Flow
+import cl.duoc.mpazpro.data.local.relation.UnidadEstudiante
 
 /** Posibles resultados al intentar asignar una unidad. */
 enum class ResultadoAsignacion {
@@ -126,4 +127,7 @@ class AsignacionRepository(
 
     fun unidadesDelEstudiante(cursoId: Long, asignaturaId: Long): Flow<List<UnidadEntity>> =
         asignacionDao.obtenerUnidadesDelEstudiante(cursoId, asignaturaId)
+
+    fun unidadesPorCursar(cursoId: Long): Flow<List<UnidadEstudiante>> =
+        asignacionDao.obtenerUnidadesPorCursar(cursoId)
 }

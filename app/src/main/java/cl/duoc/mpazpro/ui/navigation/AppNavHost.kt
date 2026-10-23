@@ -23,7 +23,7 @@ import cl.duoc.mpazpro.data.Sesion
 import cl.duoc.mpazpro.domain.model.Rol
 import cl.duoc.mpazpro.ui.docente.ConfigurarPruebaRoute
 import cl.duoc.mpazpro.ui.docente.DocenteInicioRoute
-import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioScreen
+import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioRoute
 import cl.duoc.mpazpro.ui.login.LoginRoute
 import cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute
 import cl.duoc.mpazpro.ui.utp.CrearContenidoRoute
@@ -121,7 +121,8 @@ fun AppNavHost(
 
         // ---------- Estudiante ----------
         composable(Rutas.ESTUDIANTE_INICIO) {
-            EstudianteInicioScreen(
+            EstudianteInicioRoute(
+                cursoId = usuario?.cursoId,
                 nombre = usuario?.nombre.orEmpty(),
                 onCerrarSesion = sesion::cerrar
             )

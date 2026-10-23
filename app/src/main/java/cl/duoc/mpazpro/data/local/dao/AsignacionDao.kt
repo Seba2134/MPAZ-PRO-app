@@ -10,6 +10,7 @@ import cl.duoc.mpazpro.data.local.entity.AsignaturaEntity
 import cl.duoc.mpazpro.data.local.entity.UnidadEntity
 import cl.duoc.mpazpro.data.local.relation.PruebaDocente
 import kotlinx.coroutines.flow.Flow
+import cl.duoc.mpazpro.data.local.relation.UnidadEstudiante
 
 @Dao
 interface AsignacionDao {
@@ -126,4 +127,25 @@ interface AsignacionDao {
         """
     )
     fun obtenerUnidadesDelEstudiante(cursoId: Long, asignaturaId: Long): Flow<List<UnidadEntity>>
+    /** Todo lo que el estudiante tiene por cursar: unidades publicadas y asignadas a su curso. */
+    @Query(
+        """
+        SELECT asig.id              AS asignaturaId,
+               asig.nombre          AS asignaturaNombre,
+               asig.colorHex        AS colorHex,
+               u.id                 AS unidadId,
+               u.titulo             AS unidadTitulo,
+               a.instrucciones      AS instrucciones,
+               a.intentosMaxPrueba  AS intentosMaxPrueba,
+               a.fechaInicioPrueba  AS fechaInicioPrueba,
+               a.fechaFinPrueba     AS fechaFinPrueba
+        FROM asignacion a
+        JOIN unidad u        ON u.id = a.unidadId
+        JOIN asignatura asig ON asig.id = u.asignaturaId
+        WHERE a.cursoId = :cursoId
+          AND u.estado = 'PUBLICADO'
+        ORDER BY asig.id, u.orden
+        """
+    )
+    fun obtenerUnidadesPorCursar(cursoId: Long): Flow<List<UnidadEstudiante>>
 }
