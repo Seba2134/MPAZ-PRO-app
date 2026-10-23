@@ -32,6 +32,16 @@ enum class ResultadoCuenta {
     NO_ENCONTRADO
 }
 
+/** Resultado de que Jefatura UTP administre un curso. */
+enum class ResultadoCurso {
+    OK,
+    SIN_PERMISO,
+    DATOS_INVALIDOS,
+    NOMBRE_EN_USO,
+    TIENE_ESTUDIANTES,   // no se elimina un curso con estudiantes
+    NO_ENCONTRADO
+}
+
 /** Usuarios, login, cursos, carga académica y permisos de los docentes. */
 class UsuarioRepository(
     private val usuarioDao: UsuarioDao,
@@ -142,6 +152,35 @@ class UsuarioRepository(
 
     suspend fun curso(cursoId: Long): CursoEntity? = cursoDao.obtenerPorId(cursoId)
 
+
+    fun cursosConEstudiantes(): Flow<List<CursoConEstudiantes>> = cursoDao.obtenerTodosConEstudiantes()
+
+    /** Jefatura UTP crea un curso con su profesor jefe. */
+    suspend fun crearCurso(creadorId: Long, nombre: String, profesorJefeId: Long): ResultadoCurso {
+        if (!esJefaturaUtp(creadorId)) return ResultadoCurso.SIN_PERMISO
+
+        val limpio = nombre.trim()
+        if (Validaciones.nombreCurso(limpio) != null) return ResultadoCurso.DATOS_INVALIDOS
+
+        val jefe = usuarioDao.obtenerPorId(profesorJefeId)
+        if (jefe == null || jefe.rol != Rol.DOCENTE) return ResultadoCurso.DATOS_INVALIDOS
+
+        if (cursoDao.existeNombre(limpio)) return ResultadoCurso.NOMBRE_EN_USO
+
+        cursoDao.insertar(CursoEntity(nombre = limpio, profesorJefeId = profesorJefeId))
+        return ResultadoCurso.OK
+    }
+
+    /** Solo se elimina un curso sin estudiantes, para que ningún niño quede sin curso. */
+    suspend fun eliminarCurso(creadorId: Long, cursoId: Long): ResultadoCurso {
+        if (!esJefaturaUtp(creadorId)) return ResultadoCurso.SIN_PERMISO
+        val curso = cursoDao.obtenerPorId(cursoId) ?: return ResultadoCurso.NO_ENCONTRADO
+        if (cursoDao.contarEstudiantes(cursoId) > 0) return ResultadoCurso.TIENE_ESTUDIANTES
+
+        cursoDao.eliminar(curso)   // sus asignaciones y su carga académica se borran en cascada
+        return ResultadoCurso.OK
+    }
+
     // ---------- Permisos del docente ----------
 
     fun asignaturasPermitidas(docenteId: Long, cursoId: Long): Flow<List<AsignaturaEntity>> =
@@ -166,6 +205,29 @@ class UsuarioRepository(
     }
 
     suspend fun quitarDocente(acceso: DocenteAsignaturaEntity) = docenteAsignaturaDao.quitar(acceso)
+
+    fun cargaAcademicaCompleta(): Flow<List<DocenteAsignaturaEntity>> = docenteAsignaturaDao.obtenerTodos()
+
+    /**
+     * Cambia el docente de una asignatura en un curso.
+     * [docenteId] null = la asignatura queda sin profesor de asignatura (solo la ve el profesor jefe).
+     */
+    suspend fun cambiarDocenteDeAsignatura(
+        creadorId: Long,
+        cursoId: Long,
+        asignaturaId: Long,
+        docenteId: Long?
+    ): ResultadoCurso {
+        if (!esJefaturaUtp(creadorId)) return ResultadoCurso.SIN_PERMISO
+        if (cursoDao.obtenerPorId(cursoId) == null) return ResultadoCurso.NO_ENCONTRADO
+
+        if (docenteId == null) {
+            docenteAsignaturaDao.quitarDeAsignatura(cursoId, asignaturaId)
+            return ResultadoCurso.OK
+        }
+        return if (asignarDocente(cursoId, asignaturaId, docenteId)) ResultadoCurso.OK
+        else ResultadoCurso.DATOS_INVALIDOS
+    }
 
     // ---------- Ayudantes internos ----------
 

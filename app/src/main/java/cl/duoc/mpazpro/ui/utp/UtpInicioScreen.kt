@@ -19,6 +19,7 @@ fun UtpInicioScreen(
     nombre: String,
     onCrearUsuario: () -> Unit,
     onCrearContenido: () -> Unit, // <-- Nuevo parámetro
+    onGestionarCursos: () -> Unit,
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -43,6 +44,11 @@ fun UtpInicioScreen(
         BotonGrande(
             texto = "Crear nuevo usuario",
             onClick = onCrearUsuario
+        )
+
+        BotonGrande(
+            texto = "Cursos y docentes",
+            onClick = onGestionarCursos
         )
 
         BotonGrande(

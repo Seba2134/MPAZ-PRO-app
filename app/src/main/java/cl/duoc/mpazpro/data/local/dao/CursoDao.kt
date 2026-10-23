@@ -7,6 +7,7 @@ import androidx.room.Transaction
 import cl.duoc.mpazpro.data.local.entity.CursoEntity
 import cl.duoc.mpazpro.data.local.relation.CursoConEstudiantes
 import kotlinx.coroutines.flow.Flow
+import androidx.room.Delete
 
 @Dao
 interface CursoDao {
@@ -39,4 +40,19 @@ interface CursoDao {
 
     @Insert
     suspend fun insertar(curso: CursoEntity): Long
+    /** Todos los cursos con sus estudiantes (para la pantalla de UTP). */
+    @Transaction
+    @Query("SELECT * FROM curso ORDER BY nombre")
+    fun obtenerTodosConEstudiantes(): Flow<List<CursoConEstudiantes>>
+
+    /** ¿Ya hay un curso con ese nombre? (sin importar mayúsculas: "2.º b" = "2.º B") */
+    @Query("SELECT EXISTS(SELECT 1 FROM curso WHERE nombre = :nombre COLLATE NOCASE)")
+    suspend fun existeNombre(nombre: String): Boolean
+
+    /** Cuenta TODOS los estudiantes del curso, también los desactivados. */
+    @Query("SELECT COUNT(*) FROM usuario WHERE cursoId = :cursoId AND rol = 'ESTUDIANTE'")
+    suspend fun contarEstudiantes(cursoId: Long): Int
+
+    @Delete
+    suspend fun eliminar(curso: CursoEntity)
 }

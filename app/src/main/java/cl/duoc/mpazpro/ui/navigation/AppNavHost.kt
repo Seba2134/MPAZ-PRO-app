@@ -28,7 +28,7 @@ import cl.duoc.mpazpro.ui.login.LoginRoute
 import cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute
 import cl.duoc.mpazpro.ui.utp.CrearContenidoRoute
 import cl.duoc.mpazpro.ui.utp.UtpInicioScreen
-
+import cl.duoc.mpazpro.ui.utp.GestionCursosRoute
 private const val DURACION_TRANSICION = 350
 
 @Composable
@@ -88,6 +88,7 @@ fun AppNavHost(
                 nombre = usuario?.nombre.orEmpty(),
                 onCrearUsuario = { navController.navigate(Rutas.UTP_CREAR_USUARIO) },
                 onCrearContenido = { navController.navigate(Rutas.UTP_CREAR_CONTENIDO) },
+                onGestionarCursos = { navController.navigate(Rutas.UTP_CURSOS) },
                 onCerrarSesion = sesion::cerrar
             )
         }
@@ -96,6 +97,9 @@ fun AppNavHost(
         }
         composable(Rutas.UTP_CREAR_CONTENIDO) {
             CrearContenidoRoute(onVolver = { navController.popBackStack() })
+        }
+        composable(Rutas.UTP_CURSOS) {
+            GestionCursosRoute(onVolver = { navController.popBackStack() })
         }
 
         // ---------- Docente ----------

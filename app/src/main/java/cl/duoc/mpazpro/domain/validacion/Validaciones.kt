@@ -19,6 +19,7 @@ object Validaciones {
     private const val LARGO_MINIMO_NOMBRE = 2
     const val LARGO_MAXIMO_TEXTO_CONTENIDO = 500
     const val ORDEN_MAXIMO = 99
+    const val LARGO_MAXIMO_NOMBRE_CURSO = 20
 
     private val PATRON_CORREO = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
@@ -145,4 +146,18 @@ object Validaciones {
     /** La autoría es obligatoria (regla del caso: validar autoría y licencia). */
     fun autor(valor: String): String? =
         if (valor.trim().length < 2) "Escribe el autor del contenido" else null
+
+
+    // ---------- Cursos ----------
+    fun nombreCurso(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe el nombre del curso"
+            limpio.length > LARGO_MAXIMO_NOMBRE_CURSO -> "Máximo $LARGO_MAXIMO_NOMBRE_CURSO caracteres"
+            else -> null
+        }
+    }
+
+    fun profesorJefe(docenteId: Long?): String? =
+        if (docenteId == null) "Elige al profesor jefe" else null
 }

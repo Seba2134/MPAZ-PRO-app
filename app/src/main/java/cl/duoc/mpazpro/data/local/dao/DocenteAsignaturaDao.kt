@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface DocenteAsignaturaDao {
 
-    // ---------- Para Jefatura UTP: administrar la carga académica ----------
+    // Para Jefatura UTP: administrar la carga academica
 
     /** Quién hace cada asignatura en un curso (para la pantalla de UTP). */
     @Query("SELECT * FROM docente_asignatura WHERE cursoId = :cursoId ORDER BY asignaturaId")
@@ -27,6 +27,15 @@ interface DocenteAsignaturaDao {
 
     @Delete
     suspend fun quitar(acceso: DocenteAsignaturaEntity)
+
+
+    /** Toda la carga académica del colegio (para mostrar todos los cursos de una vez). */
+    @Query("SELECT * FROM docente_asignatura")
+    fun obtenerTodos(): Flow<List<DocenteAsignaturaEntity>>
+
+    /** Deja una asignatura sin profesor de asignatura en ese curso. */
+    @Query("DELETE FROM docente_asignatura WHERE cursoId = :cursoId AND asignaturaId = :asignaturaId")
+    suspend fun quitarDeAsignatura(cursoId: Long, asignaturaId: Long)
 
     // ---------- Para el Docente: qué puede ver y hacer ----------
 
