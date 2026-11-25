@@ -1,7 +1,16 @@
 package cl.duoc.mpazpro.ui.estudiante
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,26 +18,27 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -36,16 +46,25 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.mpazpro.data.local.entity.OpcionEntity
 import cl.duoc.mpazpro.data.local.relation.RespuestaDetalle
 import cl.duoc.mpazpro.ui.components.BotonGrande
 import cl.duoc.mpazpro.ui.components.ImagenArchivo
 import cl.duoc.mpazpro.ui.components.MensajeError
 import cl.duoc.mpazpro.ui.theme.AmarilloSol
+import cl.duoc.mpazpro.ui.theme.AzulClaro
+import cl.duoc.mpazpro.ui.theme.AzulPrincipal
 import cl.duoc.mpazpro.ui.theme.RojoError
+import cl.duoc.mpazpro.ui.theme.TextoOscuro
+import cl.duoc.mpazpro.ui.theme.VerdeClaro
 import cl.duoc.mpazpro.ui.theme.VerdeHoja
 import java.io.File
 
@@ -83,15 +102,13 @@ fun RendirActividadScreen(
     ) {
         // ---------- Encabezado ----------
         item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onVolver) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                }
-                Text(
-                    text = estado.titulo.ifEmpty { "Actividad" },
-                    style = MaterialTheme.typography.headlineMedium
-                )
-            }
+            BannerEstudiante(
+                titulo = estado.titulo.ifEmpty { "Actividad" },
+                emoji = if (estado.esPruebaFinal) "🏆" else "🎯",
+                subtitulo = if (estado.esPruebaFinal) "Prueba final" else "Desafío",
+                color = if (estado.esPruebaFinal) AzulPrincipal else VerdeHoja,
+                onVolver = onVolver
+            )
         }
 
         when (val fase = estado.fase) {
@@ -103,17 +120,30 @@ fun RendirActividadScreen(
 
             is Fase.Bloqueada -> item { VistaBloqueada(mensaje = fase.mensaje, onVolver = onVolver) }
 
-            Fase.Respondiendo -> preguntaEnPantalla(
-                estado = estado,
-                onElegir = onElegir,
-                onSiguiente = onSiguiente,
-                onEscucharPregunta = onEscucharPregunta
-            )
+            Fase.Respondiendo -> item {
+                // Cada pregunta entra deslizándose desde la derecha
+                AnimatedContent(
+                    targetState = estado.indiceActual,
+                    transitionSpec = {
+                        (slideInHorizontally { ancho -> ancho } + fadeIn()) togetherWith
+                            (slideOutHorizontally { ancho -> -ancho } + fadeOut())
+                    },
+                    label = "pregunta"
+                ) { indice ->
+                    PreguntaEnPantalla(
+                        estado = estado,
+                        indice = indice,
+                        onElegir = onElegir,
+                        onSiguiente = onSiguiente,
+                        onEscucharPregunta = onEscucharPregunta
+                    )
+                }
+            }
 
             is Fase.Terminada -> {
                 item { VistaTerminada(fase = fase, estado = estado) }
                 if (estado.mostrarDetalle) {
-                    items(estado.detalle, key = { it.preguntaId }) { FilaDetalle(it) }
+                    items(estado.detalle, key = { "respuesta-${it.preguntaId}" }) { FilaDetalle(it) }
                 }
                 item { BotonGrande(texto = "Volver a la unidad", onClick = onVolver) }
             }
@@ -122,116 +152,115 @@ fun RendirActividadScreen(
 }
 
 /** Una sola pregunta, con sus alternativas y (en los desafíos) la retroalimentación. */
-private fun androidx.compose.foundation.lazy.LazyListScope.preguntaEnPantalla(
+@Composable
+private fun PreguntaEnPantalla(
     estado: RendirActividadUiState,
+    indice: Int,
     onElegir: (Long) -> Unit,
     onSiguiente: () -> Unit,
     onEscucharPregunta: () -> Unit
 ) {
-    val actual = estado.preguntaActual ?: return
+    val actual = estado.preguntas.getOrNull(indice) ?: return
     val pregunta = actual.pregunta
-    val elegida = estado.opcionElegidaActual
+    val elegida = estado.respuestas[pregunta.id]
     val acierto = estado.aciertos[pregunta.id]
+    val esUltima = indice == estado.preguntas.lastIndex
+    val progreso by animateFloatAsState(
+        targetValue = (indice + 1) / estado.preguntas.size.toFloat(),
+        label = "progresoPreguntas"
+    )
 
-    item {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (estado.instruccion.isNotBlank()) {
+            Text("👉 ${estado.instruccion}", style = MaterialTheme.typography.bodyLarge)
+        }
+
+        // ---------- Progreso ----------
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (estado.instruccion.isNotBlank()) {
-                Text(estado.instruccion, style = MaterialTheme.typography.bodyLarge)
-            }
             Text(
-                text = "Pregunta ${estado.indiceActual + 1} de ${estado.preguntas.size}",
-                style = MaterialTheme.typography.titleMedium
+                text = "Pregunta ${indice + 1} de ${estado.preguntas.size}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
             )
             LinearProgressIndicator(
-                progress = { (estado.indiceActual + 1) / estado.preguntas.size.toFloat() },
-                modifier = Modifier.fillMaxWidth()
+                progress = { progreso },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(50)),
+                color = AmarilloSol,
+                trackColor = AzulClaro,
+                drawStopIndicator = {}
             )
         }
-    }
 
-    item {
-        Text(pregunta.enunciado, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-    }
+        // ---------- Enunciado ----------
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = AzulClaro.copy(alpha = 0.5f), contentColor = TextoOscuro)
+        ) {
+            Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(pregunta.enunciado, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
 
-    pregunta.recursoImagen?.let { ruta ->
-        item { ImagenArchivo(ruta = ruta, descripcion = "Imagen de la pregunta") }
-    }
-
-    pregunta.recursoAudio?.let { ruta ->
-        item {
-            val existe = remember(ruta) { File(ruta).exists() }
-            if (existe) {
-                OutlinedButton(
-                    onClick = onEscucharPregunta,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(min = 56.dp)
-                ) {
-                    Icon(
-                        imageVector = if (estado.reproduciendoAudio) Icons.Filled.Close else Icons.Filled.PlayArrow,
-                        contentDescription = null
-                    )
-                    Text(
-                        text = if (estado.reproduciendoAudio) "  Detener" else "  Escuchar pregunta",
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                pregunta.recursoImagen?.let { ruta ->
+                    ImagenArchivo(ruta = ruta, descripcion = "Imagen de la pregunta")
+                }
+                pregunta.recursoAudio?.let { ruta ->
+                    val existe = remember(ruta) { File(ruta).exists() }
+                    if (existe) {
+                        Button(
+                            onClick = onEscucharPregunta,
+                            shape = RoundedCornerShape(50),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (estado.reproduciendoAudio) RojoError else VerdeHoja
+                            ),
+                            modifier = Modifier.heightIn(min = 56.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (estado.reproduciendoAudio) Icons.Filled.Close else Icons.Filled.PlayArrow,
+                                contentDescription = null
+                            )
+                            Text(
+                                text = if (estado.reproduciendoAudio) "  Detener" else "  🔊 Escuchar pregunta",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                    }
                 }
             }
         }
-    }
 
-    // Todos los tipos de pregunta se muestran como selección (los otros tipos están fuera de alcance)
-    items(actual.opciones, key = { it.id }) { opcion ->
-        val seleccionada = elegida == opcion.id
-        OutlinedButton(
-            onClick = { onElegir(opcion.id) },
-            enabled = elegida == null && !estado.guardando,
-            border = if (seleccionada) {
-                BorderStroke(3.dp, MaterialTheme.colorScheme.primary)
-            } else {
-                ButtonDefaults.outlinedButtonBorder(enabled = elegida == null)
-            },
-            colors = if (seleccionada) {
-                ButtonDefaults.outlinedButtonColors(
-                    disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                    disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                )
-            } else {
-                ButtonDefaults.outlinedButtonColors()
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 64.dp)
-        ) {
-            if (seleccionada) {
-                Icon(Icons.Filled.CheckCircle, contentDescription = "Elegida")
-            }
-            Text(
-                text = opcion.texto,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(start = 8.dp)
+        // ---------- Alternativas ----------
+        // Todos los tipos de pregunta se muestran como selección (los otros tipos están fuera de alcance)
+        actual.opciones.forEachIndexed { i, opcion ->
+            TarjetaAlternativa(
+                opcion = opcion,
+                letra = 'A' + i,
+                color = coloresAlternativas[i % coloresAlternativas.size],
+                elegida = elegida,
+                esPruebaFinal = estado.esPruebaFinal,
+                habilitada = elegida == null && !estado.guardando,
+                onClick = { onElegir(opcion.id) }
             )
         }
-    }
 
-    // Retroalimentación inmediata: solo en los desafíos
-    item {
-        AnimatedVisibility(visible = !estado.esPruebaFinal && acierto != null) {
+        // Retroalimentación inmediata: solo en los desafíos
+        AnimatedVisibility(
+            visible = !estado.esPruebaFinal && acierto != null,
+            enter = scaleIn() + fadeIn()
+        ) {
             Retroalimentacion(
                 acierto = acierto == true,
                 correcta = actual.opciones.firstOrNull { it.esCorrecta }?.texto
             )
         }
-    }
 
-    estado.error?.let { mensaje ->
-        item { MensajeError(mensaje) }
-    }
+        estado.error?.let { mensaje -> MensajeError(mensaje) }
 
-    item {
-        AnimatedVisibility(visible = elegida != null) {
+        AnimatedVisibility(visible = elegida != null, enter = fadeIn()) {
             BotonGrande(
-                texto = if (estado.esUltima) "Terminar" else "Siguiente",
+                texto = if (esUltima) "Terminar" else "Siguiente",
                 onClick = onSiguiente,
                 cargando = estado.guardando
             )
@@ -239,48 +268,179 @@ private fun androidx.compose.foundation.lazy.LazyListScope.preguntaEnPantalla(
     }
 }
 
+/**
+ * Una alternativa con su letra de color. Después de responder:
+ * - en un desafío se pinta la correcta en verde y, si se equivocó, la elegida en rojo;
+ * - en la prueba final solo se marca la elegida (no se revela si acertó).
+ */
+@Composable
+private fun TarjetaAlternativa(
+    opcion: OpcionEntity,
+    letra: Char,
+    color: Color,
+    elegida: Long?,
+    esPruebaFinal: Boolean,
+    habilitada: Boolean,
+    onClick: () -> Unit
+) {
+    val respondida = elegida != null
+    val esLaElegida = elegida == opcion.id
+
+    // Cómo se ve según lo que pasó
+    val apariencia = when {
+        !respondida -> Apariencia(Color.White, color.copy(alpha = 0.5f))
+        esPruebaFinal && esLaElegida ->
+            Apariencia(AzulClaro, AzulPrincipal, Icons.Filled.CheckCircle, "Tu respuesta", AzulPrincipal)
+        esPruebaFinal -> APAGADA
+        opcion.esCorrecta -> Apariencia(VerdeClaro, VerdeHoja, Icons.Filled.CheckCircle, "Correcta", VerdeHoja)
+        esLaElegida ->
+            Apariencia(RojoError.copy(alpha = 0.12f), RojoError, Icons.Filled.Close, "Tu respuesta, incorrecta", RojoError)
+        else -> APAGADA
+    }
+    val (fondo, borde, icono, descripcion, colorIcono) = apariencia
+    val apagada = respondida && icono == null
+
+    Card(
+        onClick = onClick,
+        enabled = habilitada,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 72.dp),
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = fondo,
+            contentColor = TextoOscuro,
+            disabledContainerColor = fondo,
+            disabledContentColor = if (apagada) TextoOscuro.copy(alpha = 0.45f) else TextoOscuro
+        ),
+        border = BorderStroke(if (icono != null) 3.dp else 2.dp, borde),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (respondida) 0.dp else 3.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            BurbujaLetra(letra = letra, color = if (apagada) Color.LightGray else color)
+            Text(
+                text = opcion.texto,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            if (icono != null) {
+                Icon(icono, contentDescription = descripcion, tint = colorIcono, modifier = Modifier.size(32.dp))
+            }
+        }
+    }
+}
+
+/** Los colores e ícono de una alternativa. */
+private data class Apariencia(
+    val fondo: Color,
+    val borde: Color,
+    val icono: ImageVector? = null,
+    val descripcion: String? = null,
+    val colorIcono: Color = Color.Unspecified
+)
+
+/** Las alternativas que no se eligieron (y no hay que destacar) quedan atenuadas. */
+private val APAGADA = Apariencia(Color.White.copy(alpha = 0.6f), Color.LightGray)
+
 @Composable
 private fun Retroalimentacion(acierto: Boolean, correcta: String?) {
     val color = if (acierto) VerdeHoja else RojoError
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (acierto) VerdeClaro else RojoError.copy(alpha = 0.12f),
+            contentColor = color
+        ),
+        border = BorderStroke(2.dp, color)
     ) {
-        Icon(
-            imageVector = if (acierto) Icons.Filled.CheckCircle else Icons.Filled.Close,
-            contentDescription = null,
-            tint = color,
-            modifier = Modifier.size(40.dp)
-        )
-        Text(
-            text = if (acierto) "¡Bien hecho!" else "Casi. La respuesta era: ${correcta.orEmpty()}",
-            style = MaterialTheme.typography.titleLarge,
-            color = color,
-            fontWeight = FontWeight.Bold
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (acierto) "🎉" else "💪", fontSize = 40.sp)
+                Icon(
+                    imageVector = if (acierto) Icons.Filled.CheckCircle else Icons.Filled.Close,
+                    contentDescription = null,
+                    tint = color,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+            Text(
+                text = if (acierto) "¡Bien hecho!" else "Casi. La respuesta era: ${correcta.orEmpty()}",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
 @Composable
 private fun VistaTerminada(fase: Fase.Terminada, estado: RendirActividadUiState) {
-    Column(
+    val estrellas = estrellasPorPuntaje(fase.correctas, fase.total)
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = AzulClaro.copy(alpha = 0.5f), contentColor = TextoOscuro)
     ) {
-        Icon(Icons.Filled.Star, contentDescription = null, tint = AmarilloSol, modifier = Modifier.size(72.dp))
-        Text("¡Terminaste!", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(
-            text = "Respondiste bien ${fase.correctas} de ${fase.total}",
-            style = MaterialTheme.typography.titleLarge
-        )
-        if (!estado.mostrarDetalle) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Las estrellas se llenan según el puntaje (solo para animar, no es una nota)
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                repeat(3) { i ->
+                    Icon(
+                        imageVector = Icons.Filled.Star,
+                        contentDescription = null,
+                        tint = if (i < estrellas) AmarilloSol else Color.LightGray,
+                        modifier = Modifier.size(if (i == 1) 84.dp else 64.dp)
+                    )
+                }
+            }
+            Text("¡Terminaste! 🎉", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Box(
+                modifier = Modifier
+                    .size(110.dp)
+                    .background(AzulPrincipal, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "${fase.correctas}/${fase.total}",
+                    color = Color.White,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
             Text(
-                text = "Tu profesor revisará tus respuestas",
-                style = MaterialTheme.typography.bodyLarge,
+                text = "Respondiste bien ${fase.correctas} de ${fase.total}",
+                style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center
             )
+            if (!estado.mostrarDetalle) {
+                Text(
+                    text = "Tu profesor revisará tus respuestas 📝",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
+    }
+    if (estado.mostrarDetalle && estado.detalle.isNotEmpty()) {
+        TituloSeccion("📋", "Tus respuestas", modifier = Modifier.padding(top = 16.dp))
     }
 }
 
@@ -288,7 +448,15 @@ private fun VistaTerminada(fase: Fase.Terminada, estado: RendirActividadUiState)
 @Composable
 private fun FilaDetalle(detalle: RespuestaDetalle) {
     val color = if (detalle.esCorrecta) VerdeHoja else RojoError
-    OutlinedCard(modifier = Modifier.fillMaxWidth(), border = BorderStroke(2.dp, color)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (detalle.esCorrecta) VerdeClaro else RojoError.copy(alpha = 0.10f),
+            contentColor = TextoOscuro
+        ),
+        border = BorderStroke(2.dp, color)
+    ) {
         Row(
             modifier = Modifier.padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -296,7 +464,8 @@ private fun FilaDetalle(detalle: RespuestaDetalle) {
             Icon(
                 imageVector = if (detalle.esCorrecta) Icons.Filled.CheckCircle else Icons.Filled.Close,
                 contentDescription = if (detalle.esCorrecta) "Correcta" else "Incorrecta",
-                tint = color
+                tint = color,
+                modifier = Modifier.size(32.dp)
             )
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(detalle.enunciado, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
@@ -304,7 +473,8 @@ private fun FilaDetalle(detalle: RespuestaDetalle) {
                 if (!detalle.esCorrecta) {
                     Text(
                         "La correcta era: ${detalle.respuestaCorrecta ?: "—"}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
                     )
                 }
             }
@@ -314,18 +484,26 @@ private fun FilaDetalle(detalle: RespuestaDetalle) {
 
 @Composable
 private fun VistaBloqueada(mensaje: String, onVolver: () -> Unit) {
-    Column(
+    val emoji = when {
+        "abre" in mensaje || "cerró" in mensaje -> "⏰"
+        "intentos" in mensaje -> "✋"
+        else -> "🔒"
+    }
+    Card(
         modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = AzulClaro.copy(alpha = 0.5f), contentColor = TextoOscuro)
     ) {
-        Icon(
-            imageVector = Icons.Filled.Info,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(64.dp)
-        )
-        Text(mensaje, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
-        BotonGrande(texto = "Volver", onClick = onVolver)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(emoji, fontSize = 72.sp)
+            Text(mensaje, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            BotonGrande(texto = "Volver", onClick = onVolver)
+        }
     }
 }

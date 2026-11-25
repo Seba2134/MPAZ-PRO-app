@@ -1,6 +1,7 @@
 package cl.duoc.mpazpro.ui.estudiante
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -12,18 +13,22 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,10 +43,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.mpazpro.data.local.relation.UnidadEstudiante
-import cl.duoc.mpazpro.ui.components.BotonGrande
+import cl.duoc.mpazpro.ui.theme.AmarilloClaro
+import cl.duoc.mpazpro.ui.theme.RojoError
+import cl.duoc.mpazpro.ui.theme.TextoOscuro
+import cl.duoc.mpazpro.ui.theme.VerdeClaro
+import cl.duoc.mpazpro.ui.theme.VerdeHoja
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -79,12 +89,11 @@ fun EstudianteInicioScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Column {
-                Text("¡Hola, $nombre!", style = MaterialTheme.typography.headlineMedium)
-                if (estado.cursoNombre.isNotEmpty()) {
-                    Text("Tu curso: ${estado.cursoNombre}", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+            BannerEstudiante(
+                titulo = "¡Hola, $nombre!",
+                emoji = "👋",
+                subtitulo = estado.cursoNombre.takeIf { it.isNotEmpty() }?.let { "Tu curso: $it" }
+            )
         }
 
         when {
@@ -95,25 +104,25 @@ fun EstudianteInicioScreen(
             }
 
             estado.sinCurso -> item {
-                Text(
-                    text = "Todavía no tienes un curso asignado. Pide ayuda a tu profesora o profesor.",
-                    style = MaterialTheme.typography.bodyLarge
+                MensajeConEmoji(
+                    emoji = "🏫",
+                    texto = "Todavía no tienes un curso asignado. Pide ayuda a tu profesora o profesor."
                 )
             }
 
             estado.asignaturas.isEmpty() -> item {
-                Text(
-                    text = "Por ahora no tienes unidades por cursar. ¡Vuelve pronto!",
-                    style = MaterialTheme.typography.bodyLarge
+                MensajeConEmoji(
+                    emoji = "🌈",
+                    texto = "Por ahora no tienes unidades por cursar. ¡Vuelve pronto!"
                 )
             }
 
             else -> {
                 item {
-                    Text(
-                        text = "Lo que tienes por cursar",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
+                    val total = estado.asignaturas.sumOf { it.unidades.size }
+                    TituloSeccion(
+                        emoji = "🚀",
+                        texto = if (total == 1) "Tienes 1 unidad por explorar" else "Tienes $total unidades por explorar"
                     )
                 }
                 items(estado.asignaturas, key = { it.id }) { asignatura ->
@@ -123,41 +132,51 @@ fun EstudianteInicioScreen(
         }
 
         item {
-            BotonGrande(
-                texto = "Cerrar sesión",
+            OutlinedButton(
                 onClick = onCerrarSesion,
-                colorFondo = MaterialTheme.colorScheme.secondary
-            )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+            ) {
+                Text("Cerrar sesión", style = MaterialTheme.typography.titleMedium)
+            }
         }
     }
 }
 
-/** Una tarjeta por asignatura. Al tocar el encabezado se abre o se cierra con animación. */
+/** Una tarjeta por asignatura, con su color y su emoji. Al tocar el encabezado se abre o se cierra. */
 @Composable
 private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar, onAbrirUnidad: (Long) -> Unit) {
     val colorAsignatura = Color(asignatura.colorHex.toColorInt())
     var abierta by rememberSaveable(asignatura.id) { mutableStateOf(true) }
     val giroFlecha by animateFloatAsState(if (abierta) 180f else 0f, label = "giroFlecha")
 
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        border = BorderStroke(2.dp, colorAsignatura)
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .animateContentSize(),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = colorAsignatura.copy(alpha = 0.10f)),
+        border = BorderStroke(2.dp, colorAsignatura.copy(alpha = 0.5f))
     ) {
         Column {
-            // Encabezado: punto de color + nombre + cantidad + flecha
+            // Encabezado: emoji en un círculo de color + nombre + cantidad + flecha
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { abierta = !abierta }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Box(
                     modifier = Modifier
-                        .size(20.dp)
-                        .background(colorAsignatura, CircleShape)
-                )
+                        .size(56.dp)
+                        .background(colorAsignatura, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(emojiDeAsignatura(asignatura.nombre), fontSize = 28.sp)
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = asignatura.nombre,
@@ -179,12 +198,15 @@ private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar, onAbrirUnidad: (L
             // Las unidades aparecen y desaparecen con animación
             AnimatedVisibility(visible = abierta) {
                 Column(
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     asignatura.unidades.forEach { unidad ->
-                        HorizontalDivider()
-                        FilaUnidad(unidad, onClick = { onAbrirUnidad(unidad.unidadId) })
+                        FilaUnidad(
+                            unidad = unidad,
+                            colorAsignatura = colorAsignatura,
+                            onClick = { onAbrirUnidad(unidad.unidadId) }
+                        )
                     }
                 }
             }
@@ -192,35 +214,66 @@ private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar, onAbrirUnidad: (L
     }
 }
 
-/** Una unidad por cursar. Se toca para abrirla. */
+/** Una unidad por cursar, como mini-tarjeta. Se toca para abrirla. */
 @Composable
-private fun FilaUnidad(unidad: UnidadEstudiante, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+private fun FilaUnidad(unidad: UnidadEstudiante, colorAsignatura: Color, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Text(
-            text = unidad.unidadTitulo,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
-        )
-        if (unidad.instrucciones.isNotBlank()) {
-            Text(
-                text = "Mensaje del docente: “${unidad.instrucciones}”",
-                style = MaterialTheme.typography.bodyMedium,
-                fontStyle = FontStyle.Italic
-            )
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = unidad.unidadTitulo,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (unidad.instrucciones.isNotBlank()) {
+                    // El mensaje del docente, como una burbuja
+                    Text(
+                        text = "💬 “${unidad.instrucciones}”",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontStyle = FontStyle.Italic,
+                        color = TextoOscuro,
+                        modifier = Modifier
+                            .background(AmarilloClaro, RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                }
+                PildoraPrueba(unidad)
+            }
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(colorAsignatura, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = "Abrir unidad", tint = Color.White)
+            }
         }
-        Text(
-            text = estadoPrueba(unidad),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
+
+/** El estado de la prueba final como una etiqueta de color (siempre con texto). */
+@Composable
+private fun PildoraPrueba(unidad: UnidadEstudiante) {
+    val (texto, situacion) = estadoPrueba(unidad)
+    val (fondo, colorTexto) = when (situacion) {
+        SituacionPrueba.DISPONIBLE -> VerdeClaro to VerdeHoja
+        SituacionPrueba.POR_ABRIR -> AmarilloClaro to TextoOscuro
+        SituacionPrueba.CERRADA -> RojoError.copy(alpha = 0.12f) to RojoError
+    }
+    Pildora(texto = "🏆 $texto", fondo = fondo, colorTexto = colorTexto)
+}
+
+private enum class SituacionPrueba { DISPONIBLE, POR_ABRIR, CERRADA }
 
 private fun textoCantidad(cantidad: Int): String =
     if (cantidad == 1) "1 unidad por cursar" else "$cantidad unidades por cursar"
@@ -231,14 +284,17 @@ private fun fechaCorta(millis: Long): String =
     Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate().format(FORMATO_CORTO)
 
 /** El estado de la prueba final según sus fechas, en palabras simples. */
-private fun estadoPrueba(unidad: UnidadEstudiante, ahora: Long = System.currentTimeMillis()): String {
+private fun estadoPrueba(
+    unidad: UnidadEstudiante,
+    ahora: Long = System.currentTimeMillis()
+): Pair<String, SituacionPrueba> {
     val intentos = if (unidad.intentosMaxPrueba == 1) "1 intento" else "${unidad.intentosMaxPrueba} intentos"
     val inicio = unidad.fechaInicioPrueba
     val fin = unidad.fechaFinPrueba
     return when {
-        inicio != null && ahora < inicio -> "Prueba final: abre el ${fechaCorta(inicio)}"
-        fin != null && ahora > fin -> "Prueba final: cerrada"
-        fin != null -> "Prueba final: disponible hasta el ${fechaCorta(fin)} · $intentos"
-        else -> "Prueba final: disponible · $intentos"
+        inicio != null && ahora < inicio -> "Prueba final: abre el ${fechaCorta(inicio)}" to SituacionPrueba.POR_ABRIR
+        fin != null && ahora > fin -> "Prueba final: cerrada" to SituacionPrueba.CERRADA
+        fin != null -> "Prueba final: disponible hasta el ${fechaCorta(fin)} · $intentos" to SituacionPrueba.DISPONIBLE
+        else -> "Prueba final: disponible · $intentos" to SituacionPrueba.DISPONIBLE
     }
 }
