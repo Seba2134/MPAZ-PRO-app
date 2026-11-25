@@ -15,12 +15,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +36,8 @@ import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.mpazpro.data.local.relation.PruebaDocente
 import cl.duoc.mpazpro.ui.components.BotonGrande
+import cl.duoc.mpazpro.ui.components.TarjetaMensaje
+import cl.duoc.mpazpro.ui.theme.VerdeHoja
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -39,15 +48,25 @@ fun DocenteInicioRoute(
     docenteId: Long,
     nombre: String,
     onConfigurarPrueba: (Long) -> Unit,
+    onAsignarUnidades: () -> Unit,
+    onVerAvance: (Long) -> Unit,
     onCerrarSesion: () -> Unit,
     viewModel: DocenteViewModel = viewModel(factory = DocenteViewModel.factory(docenteId))
 ) {
     val pruebas by viewModel.pruebas.collectAsState()
+    val servidor by viewModel.servidor.collectAsState()
+    val pendientes by viewModel.pendientes.collectAsState()
 
     DocenteInicioScreen(
         nombre = nombre,
         pruebas = pruebas,
+        servidor = servidor,
+        pendientes = pendientes,
+        onSincronizar = viewModel::sincronizarAhora,
+        onMensajeVisto = viewModel::mensajeVisto,
         onConfigurarPrueba = onConfigurarPrueba,
+        onAsignarUnidades = onAsignarUnidades,
+        onVerAvance = onVerAvance,
         onCerrarSesion = onCerrarSesion
     )
 }
@@ -56,7 +75,13 @@ fun DocenteInicioRoute(
 fun DocenteInicioScreen(
     nombre: String,
     pruebas: List<PruebaDocente>,
+    servidor: EstadoServidor,
+    pendientes: Int,
+    onSincronizar: () -> Unit,
+    onMensajeVisto: () -> Unit,
     onConfigurarPrueba: (Long) -> Unit,
+    onAsignarUnidades: () -> Unit,
+    onVerAvance: (Long) -> Unit,
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -72,6 +97,15 @@ fun DocenteInicioScreen(
             }
         }
 
+        item {
+            TarjetaServidor(servidor = servidor, pendientes = pendientes, onSincronizar = onSincronizar)
+        }
+        item { TarjetaMensaje(mensaje = servidor.mensaje, onVisto = onMensajeVisto) }
+
+        item {
+            BotonGrande(texto = "Asignar unidades", onClick = onAsignarUnidades)
+        }
+
         if (pruebas.isEmpty()) {
             item {
                 Text(
@@ -84,7 +118,8 @@ fun DocenteInicioScreen(
         items(pruebas, key = { it.asignacionId }) { prueba ->
             TarjetaPrueba(
                 prueba = prueba,
-                onConfigurar = { onConfigurarPrueba(prueba.asignacionId) }
+                onConfigurar = { onConfigurarPrueba(prueba.asignacionId) },
+                onVerAvance = { onVerAvance(prueba.asignacionId) }
             )
         }
 
@@ -98,9 +133,35 @@ fun DocenteInicioScreen(
     }
 }
 
+/** Estado del servidor y de los resultados que faltan por enviar. */
+@Composable
+private fun TarjetaServidor(servidor: EstadoServidor, pendientes: Int, onSincronizar: () -> Unit) {
+    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                when (servidor.conectado) {
+                    true -> {
+                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = VerdeHoja)
+                        Text(" Servidor: conectado ✓", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    false -> {
+                        Icon(Icons.Filled.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Text(" Servidor: sin conexión", style = MaterialTheme.typography.bodyLarge)
+                    }
+                    null -> Text("Servidor: revisando…", style = MaterialTheme.typography.bodyLarge)
+                }
+            }
+            Text("Resultados pendientes de enviar: $pendientes", style = MaterialTheme.typography.bodyMedium)
+            TextButton(onClick = onSincronizar, enabled = !servidor.sincronizando) {
+                Text(if (servidor.sincronizando) "Sincronizando…" else "Sincronizar ahora")
+            }
+        }
+    }
+}
+
 /** Una tarjeta por prueba, con una franja del color de la asignatura. */
 @Composable
-private fun TarjetaPrueba(prueba: PruebaDocente, onConfigurar: () -> Unit) {
+private fun TarjetaPrueba(prueba: PruebaDocente, onConfigurar: () -> Unit, onVerAvance: () -> Unit) {
     val colorAsignatura = Color(prueba.colorHex.toColorInt())
 
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -129,6 +190,7 @@ private fun TarjetaPrueba(prueba: PruebaDocente, onConfigurar: () -> Unit) {
                 Text(text = prueba.cursoNombre, style = MaterialTheme.typography.bodyMedium)
                 Text(text = resumenConfiguracion(prueba), style = MaterialTheme.typography.bodyMedium)
                 BotonGrande(texto = "Configurar prueba", onClick = onConfigurar)
+                TextButton(onClick = onVerAvance) { Text("Ver avance") }
             }
         }
     }

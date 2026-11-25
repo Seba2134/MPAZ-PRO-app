@@ -14,6 +14,17 @@ interface ContenidoDao {
     @Query("SELECT * FROM contenido WHERE oaId = :oaId ORDER BY orden")
     fun obtenerPorOa(oaId: Long): Flow<List<ContenidoEntity>>
 
+    /** Todos los contenidos de una unidad, ordenados por OA y luego por su orden (para el estudiante). */
+    @Query(
+        """
+        SELECT c.* FROM contenido c
+        JOIN objetivo_aprendizaje oa ON oa.id = c.oaId
+        WHERE oa.unidadId = :unidadId
+        ORDER BY oa.codigo, c.orden
+        """
+    )
+    fun obtenerPorUnidad(unidadId: Long): Flow<List<ContenidoEntity>>
+
     /** El siguiente número de orden libre en un OA (1 si todavía no tiene contenidos). */
     @Query("SELECT COALESCE(MAX(orden), 0) + 1 FROM contenido WHERE oaId = :oaId")
     suspend fun siguienteOrden(oaId: Long): Int

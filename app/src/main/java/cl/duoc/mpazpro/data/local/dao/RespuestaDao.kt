@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import cl.duoc.mpazpro.data.local.entity.RespuestaEntity
 import cl.duoc.mpazpro.data.local.relation.RendimientoOa
+import cl.duoc.mpazpro.data.local.relation.RespuestaDetalle
+import cl.duoc.mpazpro.data.local.relation.RespuestaParaEnviar
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -25,6 +27,43 @@ interface RespuestaDao {
     /** Cuántas correctas lleva en el intento (para calcular el resultado al finalizar). */
     @Query("SELECT COUNT(*) FROM respuesta WHERE intentoId = :intentoId AND esCorrecta = 1")
     suspend fun contarCorrectas(intentoId: Long): Int
+
+    /** Cada respuesta del intento con su pregunta, su OA, lo elegido y la respuesta correcta. */
+    @Query(
+        """
+        SELECT p.id        AS preguntaId,
+               p.enunciado AS enunciado,
+               oa.codigo   AS oaCodigo,
+               oe.texto    AS respuestaElegida,
+               oc.texto    AS respuestaCorrecta,
+               r.esCorrecta AS esCorrecta
+        FROM respuesta r
+        JOIN pregunta p              ON p.id = r.preguntaId
+        JOIN objetivo_aprendizaje oa ON oa.id = p.oaId
+        LEFT JOIN opcion oe          ON oe.id = r.opcionElegidaId
+        LEFT JOIN opcion oc          ON oc.preguntaId = p.id AND oc.esCorrecta = 1
+        WHERE r.intentoId = :intentoId
+        ORDER BY p.orden
+        """
+    )
+    fun obtenerDetalle(intentoId: Long): Flow<List<RespuestaDetalle>>
+
+    /** Las respuestas de un intento con lo que necesita el servidor (incluye la descripción del OA). */
+    @Query(
+        """
+        SELECT p.id           AS preguntaId,
+               p.enunciado    AS enunciado,
+               oa.codigo      AS oaCodigo,
+               oa.descripcion AS oaDescripcion,
+               r.esCorrecta   AS esCorrecta
+        FROM respuesta r
+        JOIN pregunta p              ON p.id = r.preguntaId
+        JOIN objetivo_aprendizaje oa ON oa.id = p.oaId
+        WHERE r.intentoId = :intentoId
+        ORDER BY p.orden
+        """
+    )
+    suspend fun obtenerParaEnviar(intentoId: Long): List<RespuestaParaEnviar>
 
     /**
      * EL INFORME: rendimiento de un estudiante por OA en una unidad.

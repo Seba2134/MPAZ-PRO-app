@@ -9,8 +9,10 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import cl.duoc.mpazpro.MpazApp
 import cl.duoc.mpazpro.data.Sesion
 import cl.duoc.mpazpro.data.repository.ResultadoLogin
+import cl.duoc.mpazpro.data.repository.SincronizacionRepository
 import cl.duoc.mpazpro.data.repository.UsuarioRepository
 import cl.duoc.mpazpro.domain.validacion.Validaciones
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,7 +34,9 @@ data class LoginUiState(
 
 class LoginViewModel(
     private val usuarioRepository: UsuarioRepository,
-    private val sesion: Sesion
+    private val sincronizacionRepository: SincronizacionRepository,
+    private val sesion: Sesion,
+    private val alcanceApp: CoroutineScope   // sigue vivo aunque esta pantalla se cierre al entrar
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -93,6 +97,11 @@ class LoginViewModel(
                 is ResultadoLogin.Exito -> {
                     _uiState.update { it.copy(cargando = false, password = "") }
                     sesion.iniciar(resultado.usuario)
+                    // En segundo plano pide también el token del servidor. Si no responde, no pasa nada.
+                    // La contraseña solo viaja en esta llamada; nunca se guarda.
+                    alcanceApp.launch {
+                        sincronizacionRepository.iniciarSesionServidor(resultado.usuario.nombreUsuario, estado.password)
+                    }
                 }
                 ResultadoLogin.CredencialesInvalidas -> mostrarFallo("Usuario o contraseña incorrectos")
                 ResultadoLogin.CuentaInactiva -> mostrarFallo("Tu cuenta está desactivada. Habla con Jefatura UTP.")
@@ -118,7 +127,9 @@ class LoginViewModel(
                 val app = this[APPLICATION_KEY] as MpazApp
                 LoginViewModel(
                     usuarioRepository = app.container.usuarioRepository,
-                    sesion = app.container.sesion
+                    sincronizacionRepository = app.container.sincronizacionRepository,
+                    sesion = app.container.sesion,
+                    alcanceApp = app.container.alcanceApp
                 )
             }
         }

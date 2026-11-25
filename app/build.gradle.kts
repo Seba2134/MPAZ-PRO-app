@@ -19,6 +19,10 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Dirección del servidor. 10.0.2.2 es el computador visto desde el emulador;
+        // en un teléfono real se cambia por la IP del PC (y se agrega en network_security_config.xml).
+        buildConfigField("String", "API_URL", "\"http://10.0.2.2:8080/\"")
     }
 
     buildTypes {
@@ -34,6 +38,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -60,4 +65,6 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
 }

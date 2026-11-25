@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import cl.duoc.mpazpro.data.local.entity.ActividadEntity
+import cl.duoc.mpazpro.data.local.relation.ActividadResumen
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -24,6 +25,22 @@ interface ActividadDao {
 
     @Query("SELECT * FROM actividad WHERE id = :id")
     suspend fun obtenerPorId(id: Long): ActividadEntity?
+
+    /** Las actividades de la unidad con su cantidad de preguntas (para la pantalla de UTP). */
+    @Query(
+        """
+        SELECT a.id, a.titulo, a.tipo, a.orden,
+               (SELECT COUNT(*) FROM pregunta p WHERE p.actividadId = a.id) AS cantidadPreguntas
+        FROM actividad a
+        WHERE a.unidadId = :unidadId
+        ORDER BY a.orden
+        """
+    )
+    fun obtenerResumenPorUnidad(unidadId: Long): Flow<List<ActividadResumen>>
+
+    /** El siguiente número de orden libre en una unidad (1 si todavía no tiene actividades). */
+    @Query("SELECT COALESCE(MAX(orden), 0) + 1 FROM actividad WHERE unidadId = :unidadId")
+    suspend fun siguienteOrden(unidadId: Long): Int
 
     @Insert
     suspend fun insertar(actividad: ActividadEntity): Long

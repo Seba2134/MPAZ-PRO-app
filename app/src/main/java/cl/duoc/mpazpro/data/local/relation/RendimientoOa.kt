@@ -14,4 +14,20 @@ data class RendimientoOa(
     /** Porcentaje de logro, de 0 a 100. */
     val porcentaje: Int
         get() = if (total == 0) 0 else (correctas * 100) / total
+
+    /** La etiqueta de logro de este OA (guía para el docente, no un diagnóstico). */
+    val etiqueta: String
+        get() = etiquetaLogro(porcentaje)
+
+    companion object {
+        const val UMBRAL_FORTALEZA = 75
+        const val UMBRAL_EN_DESARROLLO = 50
+
+        /** Regla fija: ≥ 75 % «Fortaleza», 50–74 % «En desarrollo», < 50 % «Reforzar». */
+        fun etiquetaLogro(porcentaje: Int): String = when {
+            porcentaje >= UMBRAL_FORTALEZA -> "Fortaleza"
+            porcentaje >= UMBRAL_EN_DESARROLLO -> "En desarrollo"
+            else -> "Reforzar"
+        }
+    }
 }

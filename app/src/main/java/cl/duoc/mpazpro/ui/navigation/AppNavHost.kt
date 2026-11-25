@@ -21,11 +21,19 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import cl.duoc.mpazpro.data.Sesion
 import cl.duoc.mpazpro.domain.model.Rol
+import cl.duoc.mpazpro.ui.docente.AsignarUnidadesRoute
+import cl.duoc.mpazpro.ui.docente.AvanceRoute
 import cl.duoc.mpazpro.ui.docente.ConfigurarPruebaRoute
 import cl.duoc.mpazpro.ui.docente.DocenteInicioRoute
+import cl.duoc.mpazpro.ui.docente.InformeRoute
 import cl.duoc.mpazpro.ui.estudiante.EstudianteInicioRoute
+import cl.duoc.mpazpro.ui.estudiante.RendirActividadRoute
+import cl.duoc.mpazpro.ui.estudiante.UnidadEstudianteRoute
 import cl.duoc.mpazpro.ui.login.LoginRoute
+import cl.duoc.mpazpro.ui.utp.ActividadUtpRoute
 import cl.duoc.mpazpro.ui.utp.CrearUsuarioRoute
+import cl.duoc.mpazpro.ui.utp.UnidadDetalleRoute
+import cl.duoc.mpazpro.ui.utp.UnidadesRoute
 import cl.duoc.mpazpro.ui.utp.CrearContenidoRoute
 import cl.duoc.mpazpro.ui.utp.UtpInicioScreen
 import cl.duoc.mpazpro.ui.utp.GestionCursosRoute
@@ -89,6 +97,7 @@ fun AppNavHost(
                 onCrearUsuario = { navController.navigate(Rutas.UTP_CREAR_USUARIO) },
                 onCrearContenido = { navController.navigate(Rutas.UTP_CREAR_CONTENIDO) },
                 onGestionarCursos = { navController.navigate(Rutas.UTP_CURSOS) },
+                onUnidades = { navController.navigate(Rutas.UTP_UNIDADES) },
                 onCerrarSesion = sesion::cerrar
             )
         }
@@ -101,6 +110,31 @@ fun AppNavHost(
         composable(Rutas.UTP_CURSOS) {
             GestionCursosRoute(onVolver = { navController.popBackStack() })
         }
+        composable(Rutas.UTP_UNIDADES) {
+            UnidadesRoute(
+                onVolver = { navController.popBackStack() },
+                onAbrirUnidad = { unidadId -> navController.navigate(Rutas.unidadUtp(unidadId)) }
+            )
+        }
+        composable(
+            route = Rutas.UTP_UNIDAD,
+            arguments = listOf(navArgument("unidadId") { type = NavType.LongType })
+        ) { entrada ->
+            UnidadDetalleRoute(
+                unidadId = entrada.arguments?.getLong("unidadId") ?: 0L,
+                onVolver = { navController.popBackStack() },
+                onAbrirActividad = { actividadId -> navController.navigate(Rutas.actividadUtp(actividadId)) }
+            )
+        }
+        composable(
+            route = Rutas.UTP_ACTIVIDAD,
+            arguments = listOf(navArgument("actividadId") { type = NavType.LongType })
+        ) { entrada ->
+            ActividadUtpRoute(
+                actividadId = entrada.arguments?.getLong("actividadId") ?: 0L,
+                onVolver = { navController.popBackStack() }
+            )
+        }
 
         // ---------- Docente ----------
         composable(Rutas.DOCENTE_INICIO) {
@@ -110,6 +144,8 @@ fun AppNavHost(
                 onConfigurarPrueba = { asignacionId ->
                     navController.navigate(Rutas.configurarPrueba(asignacionId))
                 },
+                onAsignarUnidades = { navController.navigate(Rutas.DOCENTE_ASIGNAR) },
+                onVerAvance = { asignacionId -> navController.navigate(Rutas.avance(asignacionId)) },
                 onCerrarSesion = sesion::cerrar
             )
         }
@@ -122,13 +158,60 @@ fun AppNavHost(
                 onVolver = { navController.popBackStack() }
             )
         }
+        composable(Rutas.DOCENTE_ASIGNAR) {
+            AsignarUnidadesRoute(onVolver = { navController.popBackStack() })
+        }
+        composable(
+            route = Rutas.DOCENTE_AVANCE,
+            arguments = listOf(navArgument("asignacionId") { type = NavType.LongType })
+        ) { entrada ->
+            val asignacionId = entrada.arguments?.getLong("asignacionId") ?: 0L
+            AvanceRoute(
+                asignacionId = asignacionId,
+                onVolver = { navController.popBackStack() },
+                onVerInforme = { estudianteId -> navController.navigate(Rutas.informe(asignacionId, estudianteId)) }
+            )
+        }
+        composable(
+            route = Rutas.DOCENTE_INFORME,
+            arguments = listOf(
+                navArgument("asignacionId") { type = NavType.LongType },
+                navArgument("estudianteId") { type = NavType.LongType }
+            )
+        ) { entrada ->
+            InformeRoute(
+                asignacionId = entrada.arguments?.getLong("asignacionId") ?: 0L,
+                estudianteId = entrada.arguments?.getLong("estudianteId") ?: 0L,
+                onVolver = { navController.popBackStack() }
+            )
+        }
 
         // ---------- Estudiante ----------
         composable(Rutas.ESTUDIANTE_INICIO) {
             EstudianteInicioRoute(
                 cursoId = usuario?.cursoId,
                 nombre = usuario?.nombre.orEmpty(),
+                onAbrirUnidad = { unidadId -> navController.navigate(Rutas.unidad(unidadId)) },
                 onCerrarSesion = sesion::cerrar
+            )
+        }
+        composable(
+            route = Rutas.ESTUDIANTE_UNIDAD,
+            arguments = listOf(navArgument("unidadId") { type = NavType.LongType })
+        ) { entrada ->
+            UnidadEstudianteRoute(
+                unidadId = entrada.arguments?.getLong("unidadId") ?: 0L,
+                onVolver = { navController.popBackStack() },
+                onAbrirActividad = { actividadId -> navController.navigate(Rutas.actividad(actividadId)) }
+            )
+        }
+        composable(
+            route = Rutas.ESTUDIANTE_ACTIVIDAD,
+            arguments = listOf(navArgument("actividadId") { type = NavType.LongType })
+        ) { entrada ->
+            RendirActividadRoute(
+                actividadId = entrada.arguments?.getLong("actividadId") ?: 0L,
+                onVolver = { navController.popBackStack() }
             )
         }
     }

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import cl.duoc.mpazpro.data.local.entity.HistorialCambioEntity
+import cl.duoc.mpazpro.data.local.relation.HistorialConUsuario
 import cl.duoc.mpazpro.domain.model.EstadoContenido
 import kotlinx.coroutines.flow.Flow
 
@@ -14,6 +15,18 @@ abstract class HistorialCambioDao {
     /** La historia completa de una unidad, de la más reciente a la más antigua. */
     @Query("SELECT * FROM historial_cambio WHERE unidadId = :unidadId ORDER BY fecha DESC")
     abstract fun obtenerPorUnidad(unidadId: Long): Flow<List<HistorialCambioEntity>>
+
+    /** La historia de una unidad con el nombre de quien hizo cada cambio (para mostrarla a UTP). */
+    @Query(
+        """
+        SELECT h.id, h.estadoAnterior, h.estadoNuevo, u.nombre AS usuarioNombre, h.comentario, h.fecha
+        FROM historial_cambio h
+        LEFT JOIN usuario u ON u.id = h.usuarioId
+        WHERE h.unidadId = :unidadId
+        ORDER BY h.fecha DESC, h.id DESC
+        """
+    )
+    abstract fun obtenerConUsuario(unidadId: Long): Flow<List<HistorialConUsuario>>
 
     @Insert
     protected abstract suspend fun registrar(cambio: HistorialCambioEntity)

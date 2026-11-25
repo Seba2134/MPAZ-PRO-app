@@ -11,6 +11,7 @@ import cl.duoc.mpazpro.data.local.entity.IntentoEntity
 import cl.duoc.mpazpro.data.local.entity.ObservacionDocenteEntity
 import cl.duoc.mpazpro.data.local.entity.RespuestaEntity
 import cl.duoc.mpazpro.data.local.relation.RendimientoOa
+import cl.duoc.mpazpro.data.local.relation.RespuestaDetalle
 import cl.duoc.mpazpro.domain.model.TipoActividad
 import kotlinx.coroutines.flow.Flow
 
@@ -126,10 +127,22 @@ class ResultadoRepository(
     fun intentosDelEstudiante(estudianteId: Long, actividadId: Long): Flow<List<IntentoEntity>> =
         intentoDao.obtenerPorEstudiante(estudianteId, actividadId)
 
+    /** Los ids de las actividades que el estudiante ya terminó al menos una vez. */
+    fun actividadesTerminadas(estudianteId: Long): Flow<List<Long>> =
+        intentoDao.obtenerActividadesTerminadas(estudianteId)
+
+    /** Cada pregunta del intento con lo que eligió y la respuesta correcta. */
+    fun detalleDelIntento(intentoId: Long): Flow<List<RespuestaDetalle>> =
+        respuestaDao.obtenerDetalle(intentoId)
+
     // ---------- Docente: monitoreo e informe ----------
 
     fun intentosDeActividad(actividadId: Long): Flow<List<IntentoEntity>> =
         intentoDao.obtenerPorActividad(actividadId)
+
+    /** El mejor intento terminado de un estudiante en una actividad (o null si no ha terminado ninguno). */
+    fun mejorIntento(estudianteId: Long, actividadId: Long): Flow<IntentoEntity?> =
+        intentoDao.obtenerMejorIntento(estudianteId, actividadId)
 
     /** El informe: rendimiento del estudiante por OA (mejor intento de la prueba final). */
     fun rendimientoPorOa(estudianteId: Long, unidadId: Long): Flow<List<RendimientoOa>> =

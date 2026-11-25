@@ -19,3 +19,6 @@ local.properties
 
 # Archivos temporales de Kotlin
 .kotlin/
+# Backend Spring Boot
+backend/target/
+backend/data/

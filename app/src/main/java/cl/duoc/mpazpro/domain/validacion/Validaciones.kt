@@ -20,6 +20,13 @@ object Validaciones {
     const val LARGO_MAXIMO_TEXTO_CONTENIDO = 500
     const val ORDEN_MAXIMO = 99
     const val LARGO_MAXIMO_NOMBRE_CURSO = 20
+    const val LARGO_MAXIMO_OBSERVACION = 500
+    const val LARGO_MAXIMO_TITULO_UNIDAD = 60
+    const val LARGO_MAXIMO_CODIGO_OA = 10
+    const val LARGO_MAXIMO_DESCRIPCION_OA = 200
+    const val LARGO_MAXIMO_COMENTARIO = 200
+    const val LARGO_MAXIMO_ENUNCIADO = 200
+    const val MINIMO_ALTERNATIVAS = 2
 
     private val PATRON_CORREO = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
@@ -160,4 +167,101 @@ object Validaciones {
 
     fun profesorJefe(docenteId: Long?): String? =
         if (docenteId == null) "Elige al profesor jefe" else null
+
+    // ---------- Informe del docente ----------
+
+    /** La observación del docente es obligatoria para validar el informe. */
+    fun observacion(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe una observación para el estudiante"
+            limpio.length > LARGO_MAXIMO_OBSERVACION ->
+                "Máximo $LARGO_MAXIMO_OBSERVACION caracteres (llevas ${limpio.length})"
+            else -> null
+        }
+    }
+
+    // ---------- Unidades y OA (Jefatura UTP) ----------
+
+    fun tituloUnidad(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe el título de la unidad"
+            limpio.length > LARGO_MAXIMO_TITULO_UNIDAD -> "Máximo $LARGO_MAXIMO_TITULO_UNIDAD caracteres"
+            else -> null
+        }
+    }
+
+    /** El código del OA, por ejemplo «OA 3». */
+    fun codigoOa(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe el código del OA (ej: OA 3)"
+            limpio.length > LARGO_MAXIMO_CODIGO_OA -> "Máximo $LARGO_MAXIMO_CODIGO_OA caracteres"
+            else -> null
+        }
+    }
+
+    fun descripcionOa(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe la descripción del OA"
+            limpio.length > LARGO_MAXIMO_DESCRIPCION_OA -> "Máximo $LARGO_MAXIMO_DESCRIPCION_OA caracteres"
+            else -> null
+        }
+    }
+
+    /** El comentario de un cambio de estado es opcional. */
+    fun comentarioCambio(valor: String): String? =
+        if (valor.trim().length > LARGO_MAXIMO_COMENTARIO) "Máximo $LARGO_MAXIMO_COMENTARIO caracteres" else null
+
+    // ---------- Actividades y preguntas (Jefatura UTP) ----------
+
+    fun tituloActividad(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe el título de la actividad"
+            limpio.length > LARGO_MAXIMO_TITULO_UNIDAD -> "Máximo $LARGO_MAXIMO_TITULO_UNIDAD caracteres"
+            else -> null
+        }
+    }
+
+    fun instruccionActividad(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe la instrucción para el estudiante"
+            limpio.length > LARGO_MAXIMO_INSTRUCCIONES -> "Máximo $LARGO_MAXIMO_INSTRUCCIONES caracteres"
+            else -> null
+        }
+    }
+
+    fun enunciadoPregunta(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.isEmpty() -> "Escribe el enunciado de la pregunta"
+            limpio.length > LARGO_MAXIMO_ENUNCIADO -> "Máximo $LARGO_MAXIMO_ENUNCIADO caracteres"
+            else -> null
+        }
+    }
+
+    /**
+     * Las alternativas de una pregunta: al menos 2 escritas, sin repetir,
+     * y la marcada como correcta ([correcta] es su posición) debe estar escrita.
+     */
+    fun alternativasPregunta(alternativas: List<String>, correcta: Int?): String? {
+        val escritas = alternativas.map { it.trim() }.filter { it.isNotEmpty() }
+        return when {
+            escritas.size < MINIMO_ALTERNATIVAS -> "Escribe al menos $MINIMO_ALTERNATIVAS alternativas"
+            escritas.map { it.lowercase() }.toSet().size != escritas.size -> "Hay alternativas repetidas"
+            correcta == null -> "Marca cuál es la alternativa correcta"
+            alternativas.getOrNull(correcta)?.trim().isNullOrEmpty() -> "La alternativa correcta no puede estar vacía"
+            else -> null
+        }
+    }
+
+    /** Todas las reglas de una pregunta nueva juntas: devuelve el primer error que encuentre. */
+    fun pregunta(oaId: Long?, enunciado: String, alternativas: List<String>, correcta: Int?): String? =
+        objetivoSeleccionado(oaId)
+            ?: enunciadoPregunta(enunciado)
+            ?: alternativasPregunta(alternativas, correcta)
 }

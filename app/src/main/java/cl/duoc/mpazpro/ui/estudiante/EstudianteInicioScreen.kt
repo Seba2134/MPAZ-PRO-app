@@ -51,6 +51,7 @@ import java.time.format.DateTimeFormatter
 fun EstudianteInicioRoute(
     cursoId: Long?,
     nombre: String,
+    onAbrirUnidad: (Long) -> Unit,
     onCerrarSesion: () -> Unit,
     viewModel: EstudianteViewModel = viewModel(factory = EstudianteViewModel.factory(cursoId))
 ) {
@@ -59,6 +60,7 @@ fun EstudianteInicioRoute(
     EstudianteInicioScreen(
         nombre = nombre,
         estado = estado,
+        onAbrirUnidad = onAbrirUnidad,
         onCerrarSesion = onCerrarSesion
     )
 }
@@ -67,6 +69,7 @@ fun EstudianteInicioRoute(
 fun EstudianteInicioScreen(
     nombre: String,
     estado: EstudianteUiState,
+    onAbrirUnidad: (Long) -> Unit,
     onCerrarSesion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -114,7 +117,7 @@ fun EstudianteInicioScreen(
                     )
                 }
                 items(estado.asignaturas, key = { it.id }) { asignatura ->
-                    TarjetaAsignatura(asignatura)
+                    TarjetaAsignatura(asignatura, onAbrirUnidad)
                 }
             }
         }
@@ -131,7 +134,7 @@ fun EstudianteInicioScreen(
 
 /** Una tarjeta por asignatura. Al tocar el encabezado se abre o se cierra con animación. */
 @Composable
-private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar) {
+private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar, onAbrirUnidad: (Long) -> Unit) {
     val colorAsignatura = Color(asignatura.colorHex.toColorInt())
     var abierta by rememberSaveable(asignatura.id) { mutableStateOf(true) }
     val giroFlecha by animateFloatAsState(if (abierta) 180f else 0f, label = "giroFlecha")
@@ -181,7 +184,7 @@ private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar) {
                 ) {
                     asignatura.unidades.forEach { unidad ->
                         HorizontalDivider()
-                        FilaUnidad(unidad)
+                        FilaUnidad(unidad, onClick = { onAbrirUnidad(unidad.unidadId) })
                     }
                 }
             }
@@ -189,9 +192,16 @@ private fun TarjetaAsignatura(asignatura: AsignaturaPorCursar) {
     }
 }
 
+/** Una unidad por cursar. Se toca para abrirla. */
 @Composable
-private fun FilaUnidad(unidad: UnidadEstudiante) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+private fun FilaUnidad(unidad: UnidadEstudiante, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
         Text(
             text = unidad.unidadTitulo,
             style = MaterialTheme.typography.bodyLarge,

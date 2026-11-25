@@ -38,5 +38,6 @@ data class IntentoEntity(
     val fechaInicio: Long = System.currentTimeMillis(),
     val fechaFin: Long? = null,                      // null = en curso
     val correctas: Int = 0,
-    val totalPreguntas: Int = 0
+    val totalPreguntas: Int = 0,
+    val sincronizado: Boolean = false                // ¿ya se envió una copia al servidor?
 )
