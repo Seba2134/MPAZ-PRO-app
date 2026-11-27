@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.graphics.toColorInt
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.mpazpro.data.local.relation.PruebaDocente
+import cl.duoc.mpazpro.data.repository.textoEstadoServicio
 import cl.duoc.mpazpro.ui.components.BotonGrande
 import cl.duoc.mpazpro.ui.components.TarjetaMensaje
 import cl.duoc.mpazpro.ui.theme.VerdeHoja
@@ -133,29 +134,31 @@ fun DocenteInicioScreen(
     }
 }
 
-/** Estado del servidor y de los resultados que faltan por enviar. */
+/** Estado de cada microservicio y de los resultados que faltan por enviar. */
 @Composable
 private fun TarjetaServidor(servidor: EstadoServidor, pendientes: Int, onSincronizar: () -> Unit) {
     OutlinedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                when (servidor.conectado) {
-                    true -> {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = VerdeHoja)
-                        Text(" Servidor: conectado ✓", style = MaterialTheme.typography.bodyLarge)
-                    }
-                    false -> {
-                        Icon(Icons.Filled.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
-                        Text(" Servidor: sin conexión", style = MaterialTheme.typography.bodyLarge)
-                    }
-                    null -> Text("Servidor: revisando…", style = MaterialTheme.typography.bodyLarge)
-                }
-            }
+            LineaServicio(nombre = "Usuarios", conectado = servidor.usuarios)
+            LineaServicio(nombre = "Resultados", conectado = servidor.resultados)
             Text("Resultados pendientes de enviar: $pendientes", style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = onSincronizar, enabled = !servidor.sincronizando) {
                 Text(if (servidor.sincronizando) "Sincronizando…" else "Sincronizar ahora")
             }
         }
+    }
+}
+
+/** Una línea por microservicio: ícono + «Usuarios: conectado ✓» (el color nunca va solo). */
+@Composable
+private fun LineaServicio(nombre: String, conectado: Boolean?) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        when (conectado) {
+            true -> Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = VerdeHoja)
+            false -> Icon(Icons.Filled.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+            null -> Unit
+        }
+        Text(" " + textoEstadoServicio(nombre, conectado), style = MaterialTheme.typography.bodyLarge)
     }
 }
 

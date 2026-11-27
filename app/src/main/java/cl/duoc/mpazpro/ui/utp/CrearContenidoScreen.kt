@@ -20,19 +20,24 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,13 +46,16 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -65,20 +73,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import cl.duoc.mpazpro.domain.model.ImagenLibre
 import cl.duoc.mpazpro.domain.model.Licencia
 import cl.duoc.mpazpro.domain.model.TipoContenido
 import cl.duoc.mpazpro.ui.components.BotonGrande
 import cl.duoc.mpazpro.ui.components.CampoTexto
 import cl.duoc.mpazpro.ui.components.ImagenArchivo
 import cl.duoc.mpazpro.ui.components.MensajeError
+import cl.duoc.mpazpro.ui.components.TarjetaMensaje
 import kotlinx.coroutines.delay
 
 enum class EstadoPermiso {
@@ -159,7 +173,12 @@ fun CrearContenidoRoute(
         onEscuchar = viewModel::alternarReproduccion,
         onAbrirAjustes = { abrirAjustesDeLaApp(context) },
         onGuardar = viewModel::guardar,
-        onVolver = onVolver
+        onVolver = onVolver,
+        onAlternarPanelImagen = viewModel::alternarPanelImagen,
+        onBusquedaImagenChange = viewModel::onBusquedaImagenChange,
+        onBuscarImagenes = viewModel::buscarImagenes,
+        onElegirImagen = viewModel::elegirImagen,
+        onMensajeImagenVisto = viewModel::mensajeImagenVisto
     )
 }
 
@@ -182,7 +201,12 @@ fun CrearContenidoScreen(
     onEscuchar: () -> Unit,
     onAbrirAjustes: () -> Unit,
     onGuardar: () -> Unit,
-    onVolver: () -> Unit
+    onVolver: () -> Unit,
+    onAlternarPanelImagen: () -> Unit,
+    onBusquedaImagenChange: (String) -> Unit,
+    onBuscarImagenes: () -> Unit,
+    onElegirImagen: (ImagenLibre) -> Unit,
+    onMensajeImagenVisto: () -> Unit
 ) {
     val habilitado = !uiState.guardando
 
@@ -286,6 +310,32 @@ fun CrearContenidoScreen(
                         Text(
                             text = "Este equipo no tiene cámara disponible.",
                             style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onAlternarPanelImagen,
+                        enabled = habilitado,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 56.dp)
+                    ) {
+                        Icon(Icons.Filled.Search, contentDescription = null)
+                        Text(
+                            text = if (uiState.panelImagenAbierto) "  Cerrar búsqueda" else "  Buscar imagen libre",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                    TarjetaMensaje(mensaje = uiState.mensajeImagen, onVisto = onMensajeImagenVisto)
+                    AnimatedVisibility(
+                        visible = uiState.panelImagenAbierto,
+                        enter = fadeIn() + expandVertically(),
+                        exit = fadeOut() + shrinkVertically()
+                    ) {
+                        PanelImagenLibre(
+                            uiState = uiState,
+                            onBusquedaChange = onBusquedaImagenChange,
+                            onBuscar = onBuscarImagenes,
+                            onElegir = onElegirImagen
                         )
                     }
                     AvisoPermiso(
@@ -432,6 +482,118 @@ private fun AvisoPermiso(
                 TextButton(onClick = if (permanente) onAbrirAjustes else onReintentar) {
                     Text(if (permanente) "Abrir ajustes" else "Intentar de nuevo")
                 }
+            }
+        }
+    }
+}
+
+/** Buscar una imagen libre en Wikimedia Commons: campo, botón y una grilla de 2 columnas con los resultados. */
+@Composable
+private fun PanelImagenLibre(
+    uiState: CrearContenidoUiState,
+    onBusquedaChange: (String) -> Unit,
+    onBuscar: () -> Unit,
+    onElegir: (ImagenLibre) -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            CampoTexto(
+                valor = uiState.busquedaImagen,
+                onValorChange = onBusquedaChange,
+                etiqueta = "¿Qué imagen buscas?",
+                error = uiState.errorBusquedaImagen,
+                icono = Icons.Filled.Search,
+                enabled = !uiState.buscandoImagenes,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { onBuscar() })
+            )
+            BotonGrande(texto = "Buscar", onClick = onBuscar, cargando = uiState.buscandoImagenes)
+            Text(
+                text = "Imágenes libres de Wikimedia Commons",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            if (uiState.buscandoImagenes) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            // Grilla de 2 columnas hecha con filas (la pantalla ya tiene scroll; no se usa LazyVerticalGrid)
+            uiState.imagenesLibres.chunked(2).forEach { fila ->
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    fila.forEach { imagen ->
+                        TarjetaImagenLibre(
+                            imagen = imagen,
+                            miniatura = uiState.miniaturas[imagen.id],
+                            fallo = imagen.id in uiState.miniaturasFallidas,
+                            descargando = uiState.descargandoImagenId == imagen.id,
+                            habilitada = uiState.descargandoImagenId == null,
+                            onClick = { onElegir(imagen) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (fila.size == 1) Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaImagenLibre(
+    imagen: ImagenLibre,
+    miniatura: ImageBitmap?,
+    fallo: Boolean,
+    descargando: Boolean,
+    habilitada: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(onClick = onClick, enabled = habilitada, modifier = modifier) {
+        Column {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    miniatura != null -> Image(
+                        bitmap = miniatura,
+                        contentDescription = imagen.titulo,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    fallo -> Icon(Icons.Filled.Info, contentDescription = "Miniatura no disponible")
+                    else -> CircularProgressIndicator(modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                }
+                if (descargando) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Descargando…", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = imagen.titulo,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(imagen.autor, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(imagen.textoLicencia, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }

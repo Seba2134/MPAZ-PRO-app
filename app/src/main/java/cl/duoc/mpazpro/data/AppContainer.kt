@@ -5,6 +5,8 @@ import cl.duoc.mpazpro.data.local.AppDatabase
 import cl.duoc.mpazpro.data.remote.ClienteApi
 import cl.duoc.mpazpro.data.repository.AsignacionRepository
 import cl.duoc.mpazpro.data.repository.ContenidoRepository
+import cl.duoc.mpazpro.data.repository.ImagenLibreRepository
+import cl.duoc.mpazpro.data.repository.ObservacionRemotaRepository
 import cl.duoc.mpazpro.data.repository.ResultadoRepository
 import cl.duoc.mpazpro.data.repository.SincronizacionRepository
 import cl.duoc.mpazpro.data.repository.UsuarioRepository
@@ -68,12 +70,26 @@ class AppContainer(context: Context) {
      */
     val alcanceApp: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    /** ms-usuarios y ms-resultados, con el mismo cliente HTTP (que agrega el token). */
+    private val apis by lazy { ClienteApi.crear(sesion) }
+
     val sincronizacionRepository: SincronizacionRepository by lazy {
         SincronizacionRepository(
-            api = ClienteApi.crear(sesion),
+            usuariosApi = apis.usuarios,
+            resultadosApi = apis.resultados,
             sesion = sesion,
             intentoDao = db.intentoDao(),
             respuestaDao = db.respuestaDao()
         )
+    }
+
+    /** Imágenes libres de Wikimedia Commons (API externa, con su propio cliente HTTP sin nuestro token). */
+    val imagenLibreRepository: ImagenLibreRepository by lazy {
+        ImagenLibreRepository(ClienteApi.crearWikimedia())
+    }
+
+    /** Observaciones e intentos en ms-resultados (recibir, enviar y actualizar). */
+    val observacionRemotaRepository: ObservacionRemotaRepository by lazy {
+        ObservacionRemotaRepository(api = apis.resultados, sesion = sesion)
     }
 }

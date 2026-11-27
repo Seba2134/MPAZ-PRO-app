@@ -20,9 +20,10 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Dirección del servidor. 10.0.2.2 es el computador visto desde el emulador;
+        // Direcciones de los microservicios. 10.0.2.2 es el computador visto desde el emulador;
         // en un teléfono real se cambia por la IP del PC (y se agrega en network_security_config.xml).
-        buildConfigField("String", "API_URL", "\"http://10.0.2.2:8080/\"")
+        buildConfigField("String", "URL_USUARIOS", "\"http://10.0.2.2:8081/\"")
+        buildConfigField("String", "URL_RESULTADOS", "\"http://10.0.2.2:8082/\"")
     }
 
     buildTypes {

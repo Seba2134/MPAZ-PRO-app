@@ -27,6 +27,8 @@ object Validaciones {
     const val LARGO_MAXIMO_COMENTARIO = 200
     const val LARGO_MAXIMO_ENUNCIADO = 200
     const val MINIMO_ALTERNATIVAS = 2
+    const val LARGO_MINIMO_BUSQUEDA = 2
+    const val LARGO_MAXIMO_BUSQUEDA = 50
 
     private val PATRON_CORREO = Regex("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
 
@@ -146,6 +148,16 @@ object Validaciones {
             limpio.isEmpty() -> "Escribe el orden"
             numero == null -> "Escribe solo números"
             numero !in 1..ORDEN_MAXIMO -> "Debe ser un número entre 1 y $ORDEN_MAXIMO"
+            else -> null
+        }
+    }
+
+    /** Lo que se busca en Wikimedia Commons: entre 2 y 50 caracteres. */
+    fun busquedaImagen(valor: String): String? {
+        val limpio = valor.trim()
+        return when {
+            limpio.length < LARGO_MINIMO_BUSQUEDA -> "Escribe al menos $LARGO_MINIMO_BUSQUEDA letras"
+            limpio.length > LARGO_MAXIMO_BUSQUEDA -> "Máximo $LARGO_MAXIMO_BUSQUEDA caracteres"
             else -> null
         }
     }

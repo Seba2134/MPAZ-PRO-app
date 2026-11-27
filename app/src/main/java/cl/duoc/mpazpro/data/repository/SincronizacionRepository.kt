@@ -6,12 +6,15 @@ import cl.duoc.mpazpro.data.local.dao.IntentoDao
 import cl.duoc.mpazpro.data.local.dao.RespuestaDao
 import cl.duoc.mpazpro.data.local.relation.IntentoParaEnviar
 import cl.duoc.mpazpro.data.local.relation.RespuestaParaEnviar
-import cl.duoc.mpazpro.data.remote.MpazApi
+import cl.duoc.mpazpro.data.remote.ResultadosApi
+import cl.duoc.mpazpro.data.remote.UsuariosApi
 import cl.duoc.mpazpro.data.remote.dto.IntentoDto
 import cl.duoc.mpazpro.data.remote.dto.LoginDto
 import cl.duoc.mpazpro.data.remote.dto.RespuestaDto
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -32,13 +35,30 @@ sealed class ResultadoSync {
     data object SinSesion : ResultadoSync()
 }
 
+/** Si cada microservicio respondió a su endpoint de salud. */
+data class EstadoServidores(
+    val usuarios: Boolean,
+    val resultados: Boolean
+)
+
 /**
- * Envía al servidor una COPIA de los intentos terminados. Room sigue siendo la fuente de verdad:
- * si el servidor está apagado, todo queda pendiente y la app funciona igual.
- * Ninguna función lanza errores hacia la pantalla.
+ * El texto de una línea de la tarjeta del docente: «Usuarios: conectado ✓», «Resultados: sin conexión»…
+ * [conectado] es null mientras se está revisando.
+ */
+fun textoEstadoServicio(nombre: String, conectado: Boolean?): String = when (conectado) {
+    true -> "$nombre: conectado ✓"
+    false -> "$nombre: sin conexión"
+    null -> "$nombre: revisando…"
+}
+
+/**
+ * Envía a ms-resultados una COPIA de los intentos terminados; el token se pide a ms-usuarios.
+ * Room sigue siendo la fuente de verdad: si un servidor está apagado, todo queda pendiente
+ * y la app funciona igual. Ninguna función lanza errores hacia la pantalla.
  */
 class SincronizacionRepository(
-    private val api: MpazApi,
+    private val usuariosApi: UsuariosApi,
+    private val resultadosApi: ResultadosApi,
     private val sesion: Sesion,
     private val intentoDao: IntentoDao,
     private val respuestaDao: RespuestaDao
@@ -57,7 +77,7 @@ class SincronizacionRepository(
     suspend fun iniciarSesionServidor(usuario: String, clave: String): Boolean = withContext(Dispatchers.IO) {
         val nombreUsuario = usuario.trim().lowercase()
         try {
-            val respuesta = api.login(LoginDto(nombreUsuario, clave))
+            val respuesta = usuariosApi.login(LoginDto(nombreUsuario, clave))
             // Si mientras tanto cerró sesión (o entró otra persona), el token ya no sirve
             if (sesion.usuarioActual.value?.nombreUsuario != nombreUsuario) return@withContext false
             sesion.guardarToken(respuesta.token)
@@ -76,10 +96,17 @@ class SincronizacionRepository(
         }
     }
 
-    /** ¿El servidor está encendido y responde? */
-    suspend fun servidorDisponible(): Boolean = withContext(Dispatchers.IO) {
+    /** ¿Cada microservicio está encendido y responde? Se consultan los dos al mismo tiempo. */
+    suspend fun servidorDisponible(): EstadoServidores = coroutineScope {
+        val usuarios = async(Dispatchers.IO) { responde { usuariosApi.salud() } }
+        val resultados = async(Dispatchers.IO) { responde { resultadosApi.salud() } }
+        EstadoServidores(usuarios = usuarios.await(), resultados = resultados.await())
+    }
+
+    /** true si el endpoint de salud responde «ok»; cualquier error de red cuenta como apagado. */
+    private suspend fun responde(salud: suspend () -> Map<String, String>): Boolean =
         try {
-            api.salud()["estado"] == "ok"
+            salud()["estado"] == "ok"
         } catch (e: CancellationException) {
             throw e  // la cancelación de la corrutina no es un error de red
         } catch (e: IOException) {
@@ -89,7 +116,6 @@ class SincronizacionRepository(
         } catch (e: RuntimeException) {
             false
         }
-    }
 
     /** Envía todos los intentos pendientes. Con 200 o 201 queda marcado como sincronizado. */
     suspend fun sincronizarPendientes(): ResultadoSync = withContext(Dispatchers.IO) {
@@ -100,7 +126,7 @@ class SincronizacionRepository(
             try {
                 for (intento in intentoDao.obtenerPendientes()) {
                     val dto = aDto(intento, respuestaDao.obtenerParaEnviar(intento.intentoId))
-                    val respuesta = api.enviarIntento(dto)
+                    val respuesta = resultadosApi.enviarIntento(dto)
                     when {
                         respuesta.code() == HttpURLConnection.HTTP_OK ||
                             respuesta.code() == HttpURLConnection.HTTP_CREATED -> {

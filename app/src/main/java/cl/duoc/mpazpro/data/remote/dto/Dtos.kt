@@ -39,3 +39,39 @@ data class RespuestaDto(
     val oaDescripcion: String,
     val esCorrecta: Boolean
 )
+
+/** Una observación tal como la devuelve ms-resultados. [fechaActualizacion] es epoch en milisegundos. */
+data class ObservacionDto(
+    val id: Long,
+    val estudianteNombreUsuario: String,
+    val unidadTitulo: String,
+    val texto: String,
+    val validado: Boolean,
+    val docenteNombreUsuario: String,
+    val fechaActualizacion: Long
+)
+
+/** Para crear una observación (POST). Nace sin validar. */
+data class NuevaObservacionDto(
+    val estudianteNombreUsuario: String,
+    val unidadTitulo: String,
+    val texto: String
+)
+
+/** Para actualizar una observación (PUT). Si el texto cambia, el servidor quita la validación. */
+data class ActualizarObservacionDto(
+    val texto: String,
+    val validado: Boolean
+)
+
+/** Un intento guardado en ms-resultados (solo los campos que muestra la app). */
+data class IntentoServidorDto(
+    val id: Long,
+    val unidadTitulo: String,
+    val actividadTitulo: String,
+    val tipo: String,
+    val numeroIntento: Int,
+    val fechaFin: Long,
+    val correctas: Int,
+    val total: Int
+)

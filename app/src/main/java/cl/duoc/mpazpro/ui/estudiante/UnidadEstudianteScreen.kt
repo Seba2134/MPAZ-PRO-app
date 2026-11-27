@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.mpazpro.data.local.entity.ActividadEntity
 import cl.duoc.mpazpro.data.local.entity.ContenidoEntity
+import cl.duoc.mpazpro.domain.model.Licencia
 import cl.duoc.mpazpro.domain.model.TipoContenido
 import cl.duoc.mpazpro.ui.components.BotonGrande
 import cl.duoc.mpazpro.ui.components.ImagenArchivo
@@ -255,6 +256,14 @@ private fun VistaContenido(
             }
             contenido.texto?.takeIf { it.isNotBlank() }?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium)
+            }
+            // La licencia de las imágenes libres exige citar al autor
+            if (contenido.licencia != Licencia.PROPIA) {
+                Text(
+                    text = "Imagen: ${contenido.autor}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
 

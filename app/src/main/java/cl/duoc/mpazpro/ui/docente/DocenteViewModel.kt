@@ -19,9 +19,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** El estado de la conexión con el servidor, para la tarjeta del inicio del docente. */
+/** El estado de la conexión con cada microservicio, para la tarjeta del inicio del docente. */
 data class EstadoServidor(
-    val conectado: Boolean? = null,   // null = todavía revisando
+    val usuarios: Boolean? = null,     // null = todavía revisando
+    val resultados: Boolean? = null,
     val sincronizando: Boolean = false,
     val mensaje: String? = null
 )
@@ -59,8 +60,8 @@ class DocenteViewModel(
 
     private fun revisarServidor() {
         viewModelScope.launch {
-            val conectado = sincronizacionRepository.servidorDisponible()
-            _servidor.update { it.copy(conectado = conectado) }
+            val estado = sincronizacionRepository.servidorDisponible()
+            _servidor.update { it.copy(usuarios = estado.usuarios, resultados = estado.resultados) }
         }
     }
 
@@ -74,8 +75,15 @@ class DocenteViewModel(
                 ResultadoSync.SinConexion -> "No se pudo conectar"
                 ResultadoSync.SinSesion -> "Vuelve a iniciar sesión con el servidor encendido"
             }
-            val conectado = sincronizacionRepository.servidorDisponible()
-            _servidor.update { it.copy(sincronizando = false, conectado = conectado, mensaje = mensaje) }
+            val estado = sincronizacionRepository.servidorDisponible()
+            _servidor.update {
+                it.copy(
+                    sincronizando = false,
+                    usuarios = estado.usuarios,
+                    resultados = estado.resultados,
+                    mensaje = mensaje
+                )
+            }
         }
     }
 
